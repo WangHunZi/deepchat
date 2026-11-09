@@ -3,7 +3,7 @@
 开始任务前依次阅读 `Rules.md`、`STYLE_GUIDE.md` 和 `Plan.md`，再阅读当前阶段相关文档。
 
 - 产品是 DeepSeek 娘实体桌宠。用户已选择允许 C++、基于小智二开；先读更新的 Plan.md 和 docs/XIAOZHI.md，不恢复旧的自研状态机与 HTTP/WAV 后端路线。
-- 已有 P0 基线和素材来源收集；小智参考工程与最终 XIAO 适配分别验收。旧 bringup 仍只输出启动信息；参考构建不得作为目标板可烧录交付。
+- 已有 P0 基线、素材来源收集、转换与 240×240 预览，说明见 docs/ASSETS.md；说话仍为待机占位。小智参考工程与最终 XIAO 适配分别验收。旧 bringup 仍只输出启动信息；参考构建不得作为目标板可烧录交付。
 - 按 `Plan.md` 中的阶段依赖实现；每阶段交付实现、真实调用方、必要测试和文档，不提前创建无人调用的框架。
 - 默认使用 Docker 开发入口，工具链与源码分离；首次 registry 发布和 digest 锁定按 docs/DOCKER_RELEASE.md 人工触发，不自动发布或 merge。
 - 使用当前 checkout；云任务已经隔离，除非用户要求，不创建 Git worktree。

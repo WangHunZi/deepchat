@@ -3,7 +3,7 @@
 目标：让蓝发鲸鱼女仆 DeepSeek 娘生活在 ESP32-S3 小屏幕里，通过语音互动和表情反馈陪伴用户。
 
 项目基于 MIT 的 [小智 ESP32](https://github.com/78/xiaozhi-esp32) 二次开发，复用其 C++ 语音、显示、表情和通信能力。上游源码固定在 Git 子模块，开发工具固定在已发布的 Docker 镜像。
-当前接入的是 ESP32-S3 LCD 参考工程；XIAO ESP32S3 Plus 的最终接线、角色素材替换与实机验收尚未完成。
+已接入 ESP32-S3 LCD 参考工程、DeepSeek 娘素材转换与 240×240 浏览器预览；XIAO ESP32S3 Plus 的最终接线、角色界面集成与实机验收尚未完成。
 
 ## 开发入口
 
@@ -28,10 +28,22 @@ python3 tools/collect_assets.py
 python3 tools/collect_assets.py --check
 ```
 
-原始联系表及 GIF 位于 assets/local/，来源与动作选择见 [素材说明](assets/README.md)。240×240 成品预览是下一份功能交付，当前构建通过不能代表角色画面或实机通过。
+原始联系表及 GIF 位于 assets/local/。生成 240×240 角色预览：
+
+```sh
+python3 tools/dev.py assets setup
+# 先完成上面的参考构建以取得默认资源/字体，然后：
+python3 tools/dev.py --offline assets build
+python3 tools/dev.py --offline assets check
+python3 tools/dev.py preview
+```
+
+在运行命令的电脑上打开 http://127.0.0.1:8765/，支持六动作切换、暂停、逐帧及 1×/2×。说话暂用待机占位，没有嘴型同步。也可取得生成的 assets/generated/deepseek/index.html 在允许 file:// 的浏览器打开。完整步骤和验收边界见 [240×240 素材说明](docs/ASSETS.md)。
 
 ## 文档
 
+- [240×240 素材、预览与人工检查](docs/ASSETS.md)
+- [素材与浏览器验证结果](docs/ASSETS_VALIDATION.md)
 - [小智接入、构建与看效果的方法](docs/XIAOZHI.md)
 - [小智参考工程验证报告](docs/XIAOZHI_VALIDATION.md)
 - [当前实施与 AI 交接计划](Plan.md)
