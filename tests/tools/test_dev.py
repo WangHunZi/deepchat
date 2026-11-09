@@ -11,7 +11,7 @@ from pathlib import Path
 from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[2]
-SPEC = importlib.util.spec_from_file_location("deepchat_dev", ROOT / "tools/dev.py")
+SPEC = importlib.util.spec_from_file_location("deepchat_dev", ROOT / "tools/native.py")
 dev = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(dev)
 
@@ -21,8 +21,8 @@ class DevelopmentEntryTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / "tools").mkdir()
-            (root / "tools/dev.py").write_bytes((ROOT / "tools/dev.py").read_bytes())
-            (root / "tools/sdk-lock.json").write_bytes((ROOT / "tools/sdk-lock.json").read_bytes())
+            for name in ("dev.py", "native.py", "container.py", "sdk-lock.json"):
+                (root / "tools" / name).write_bytes((ROOT / "tools" / name).read_bytes())
             binaries = root / ".venv/bin"
             binaries.mkdir(parents=True)
             (binaries / "python").symlink_to(sys.executable)
@@ -30,9 +30,10 @@ class DevelopmentEntryTest(unittest.TestCase):
             cmake.write_text("#!/bin/sh\nexit 17\n")
             cmake.chmod(0o755)
             result = subprocess.run(
-                [sys.executable, root / "tools/dev.py", "build", "--target", "host"],
+                [sys.executable, root / "tools/dev.py", "--native", "build", "--target", "host"],
                 capture_output=True,
                 text=True,
+                env=os.environ | {"DC_TOOL_ROOT": str(root), "DC_BUILD_ROOT": str(root / "build")},
             )
             self.assertEqual(result.returncode, 17, result.stderr)
             self.assertNotIn("ESP-IDF", result.stderr)
