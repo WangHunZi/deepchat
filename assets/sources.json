@@ -29,6 +29,36 @@
           "url": "https://raw.githubusercontent.com/xpy12367/codex-pet-DeepSeek-girl/27843e4ba86cc439d29aa1c6b0591f206fa2514f/README.md",
           "size_bytes": 3567,
           "sha256": "f15ea1f7aeff1deb4e51f22b5043d911a05288b477f3bcbd33f263ff18ba2279"
+        },
+        {
+          "path": "previews/idle.gif",
+          "url": "https://raw.githubusercontent.com/xpy12367/codex-pet-DeepSeek-girl/27843e4ba86cc439d29aa1c6b0591f206fa2514f/previews/idle.gif",
+          "size_bytes": 76610,
+          "sha256": "73124078f6ac870e1c4edd770ea248d75be8ae7b81c83f218ed9e535af76641b"
+        },
+        {
+          "path": "previews/waiting.gif",
+          "url": "https://raw.githubusercontent.com/xpy12367/codex-pet-DeepSeek-girl/27843e4ba86cc439d29aa1c6b0591f206fa2514f/previews/waiting.gif",
+          "size_bytes": 76481,
+          "sha256": "702c7c150811c91df9d8bca716b7ae7abbca1c0f47954d4454294411d5c40166"
+        },
+        {
+          "path": "previews/running.gif",
+          "url": "https://raw.githubusercontent.com/xpy12367/codex-pet-DeepSeek-girl/27843e4ba86cc439d29aa1c6b0591f206fa2514f/previews/running.gif",
+          "size_bytes": 74391,
+          "sha256": "c408301541ad5b824e62b9f69d812f3be01338633bf2166293475b3a6c8b13f0"
+        },
+        {
+          "path": "previews/waving.gif",
+          "url": "https://raw.githubusercontent.com/xpy12367/codex-pet-DeepSeek-girl/27843e4ba86cc439d29aa1c6b0591f206fa2514f/previews/waving.gif",
+          "size_bytes": 51715,
+          "sha256": "cdbb843d90d571e41e113dfc4b14b42c7144389e9ad4b03c922ff79f64e114d8"
+        },
+        {
+          "path": "previews/failed.gif",
+          "url": "https://raw.githubusercontent.com/xpy12367/codex-pet-DeepSeek-girl/27843e4ba86cc439d29aa1c6b0591f206fa2514f/previews/failed.gif",
+          "size_bytes": 104309,
+          "sha256": "0a1e98fe0d579e034ff82556243e32faa387e34d0d1e43958d7e8846e53a12a8"
         }
       ]
     },

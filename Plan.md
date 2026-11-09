@@ -9,7 +9,7 @@
 首次目标是可接线、可配置、可烧录并能看到角色的固件；参考构建通过不等于目标硬件适配完成。
 
 已合并：PR #1 规范、#2 P0 基线、#3 Docker 开发镜像、#4 发布镜像 digest 锁定、#5 DeepSeek 娘素材来源与本地收集。
-当前功能 PR 接入固定版本小智子模块、参考板构建与依赖锁；实际结果见 [小智接入说明](docs/XIAOZHI.md) 及验证报告。
+小智基础工程 PR #6 已合并；当前功能已实现角色素材转换、同源 240×240 预览与带素材参考构建，待本功能 PR review。实际结果见 docs/ASSETS_VALIDATION.md。
 原自行实现的角色核心停留在本地 `feat/pet-state-animation`，未推送或提交 PR，不作为新路线的依赖。
 
 ## 1. 复用与自有代码的边界
@@ -46,7 +46,7 @@
 - 工具环境使用固定公开 GHCR digest。小智业务依赖不预装在工具镜像，首次参考构建需要在线下载。
 - 历史证据见 docs/P0_VALIDATION.md、docs/DOCKER_VALIDATION.md、docs/IMAGE_PIN_VALIDATION.md；不能拿这些结果声称小智或最终板级已验证。
 
-### P1：固定上游与参考构建（当前功能）
+### P1：固定上游与参考构建（PR #6 已合并）
 
 - [x] 固定小智上游 commit，保留完整 MIT 来源。
 - [x] 接入统一 dev.py 命令，检查源码版本及本地修改，不 reset 开发者修改。
@@ -60,12 +60,12 @@
 ### P2：DeepSeek 娘素材与 240×240 预览
 
 - [x] 来源与本地收集：两组固定来源、逐文件 SHA-256、许可记录，见 assets/README.md（PR #5）。
-- [ ] 优先复用上游现有自定义素材、GIF/表情转换与加载链，不先设计另一种资源包、解码器或播放器。
-- [ ] 选定一套主画风，整理待机、倾听、思考、说话、开心、困惑的实际素材映射；缺少动作如实标记，别把动画循环当真实口型。
-- [ ] 统一透明留白、角色锚点和 240×240 画布，检查帧时长、循环接缝与缩放清晰度。
-- [ ] 提供在电脑上可打开的预览，使用同一份素材及帧时长，不另编一套与设备不同的动作逻辑。
-- [ ] 记录转换前后大小、Flash 预算、调色/背景合成与画面差异；有证据不足时补最小适配。
-- [ ] 说明本地素材导入与公开分发包的区别，保留原作者及工具声明。
+- [x] 复用上游 GIF 解码与 mmap 资源打包链，支持已有 FLASH_CUSTOM_ASSETS 构建路径，没有新建资源格式或设备播放器。
+- [x] 选定 Codex Pet 同一画风，五段动画映射六动作；说话明确待机占位，没有嘴型。设备状态自动映射留待 P3。
+- [x] 用透明 WebP 消除原 GIF 绿边，统一全局锚点与 240×240 画布；保留原时长参考，10 fps 上限采样。
+- [x] 提供单 HTML/本机 HTTP 预览，支持切换、暂停、逐帧、拖动和比例；最终 GIF 的 30 帧经上游原解码器逐像素/时长验证。
+- [x] 记录转换、颜色及预算：最终包 1443207 B；11 个素材测试、25 个工具测试、带素材参考构建与浏览器桌面/手机验证通过。
+- [x] 原图和生成角色包留在忽略目录；保留来源/许可，CI 使用原创几何 fixtures，不上传第三方角色图像。
 
 验收：用户能直观看到 240×240 的角色大小、表情和动作，并能按场景切换。预览不等于实机刷新率、色彩或音频验证。
 
@@ -113,13 +113,18 @@ python3 tools/dev.py --offline test --suite tools
 python3 tools/dev.py --offline xiaozhi check
 # 首次业务依赖下载需要网络；不是最终目标板固件：
 python3 tools/dev.py --jobs 4 xiaozhi build --profile reference-s3-lcd
+python3 tools/collect_assets.py --pack codex-pet
+python3 tools/dev.py assets setup
+python3 tools/dev.py --offline assets build
+python3 tools/dev.py --offline assets check
+python3 tools/dev.py preview
 ```
 
 旧 `build --target esp32s3 --board bringup` 仍是历史最小应用；它不构建小智。
 根 CMake 尚无新路线的自有角色单元测试；unit/c-api-compat 的零测试仍应失败，不能伪称角色验证通过。
 旧本地分支的 `pet-demo` 没有并入新路线，不是当前可用命令。
 
-当前可查看编译产物、源码入口和已收集源素材；P2 才提供真实 240×240 图片预览。在该预览完成前，不能拿文字日志声称角色画面已通过验收。
+当前可生成 240×240 素材预览：assets setup → assets build → assets check → preview，详见 docs/ASSETS.md。素材画面验证不包含固件顶栏/聊天文字叠层、物理屏幕或音频。
 详细命令、上游资源工具入口和人工验收路径见 docs/XIAOZHI.md。
 
 ## 5. 评审、提交与后续 AI
@@ -129,4 +134,4 @@ python3 tools/dev.py --jobs 4 xiaozhi build --profile reference-s3-lcd
 - 编译与测试交给独立测试子代理，报告命令、数量、通过/失败/跳过/未运行原因；上游测试和自有工具测试分别说明。
 - 每份 PR 说明基线、依赖、commit 阅读顺序、实际验证、未验证硬件与服务；用户决定 merge。未经新授权不自动 merge 或发布镜像/环境。
 - 使用当前 checkout，除非用户要求不创建额外 worktree。上游修改以可审核文件/补丁管理，保持原作者与许可；不改写已审阅历史。
-- 后续 AI 先核对本 PR 状态与验证报告，再推进 P2 素材预览，并收集 P3 目标板资料。不要重新实现废弃的 HTTP/WAV 服务或 C11 角色核心。
+- 后续 AI 先核对当前 P2 PR 状态与 docs/ASSETS_VALIDATION.md，再收集 P3 目标板资料，接入角色界面与实际状态事件映射。不要重新实现废弃的 HTTP/WAV 服务或 C11 角色核心。

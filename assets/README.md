@@ -16,18 +16,18 @@ python3 tools/collect_assets.py --pack codex-pet
 python3 tools/collect_assets.py --pack emotes
 ```
 
-默认收集八个文件，约 14.2 MB（13.5 MiB），包含元数据、原始图片及各自 README 来源快照。
+默认收集十三个文件，约 14.6 MB（13.9 MiB），包含元数据、原始图片及各自 README 来源快照。
 下载使用固定 commit URL，检查长度与 SHA-256 后才保存；不追随 main 或 latest。
 已有文件通过检查即复用；本地文件不符时报告错误并保留文件，不自动覆盖修改。
 需要重新下载时，先自行备份并删除对应文件，再运行收集。`--check` 完全离线，缺失或内容不符以非零状态退出。
 工具不负责安装 Codex Pet，不向用户的 `~/.codex/` 写入文件。
-这是 P1 前置收集入口；计划中的 `tools/dev.py assets --check` 将负责转换产物检查，目前仍未实现。
+这是原始素材收集入口。转换与预览已接入 `python3 tools/dev.py assets build`、`assets check`、`preview`，使用方式见 [240×240 素材说明](../docs/ASSETS.md)。
 
 ## 两套候选
 
 | 本地目录 | 来源与固定版本 | 当前收集内容 | 用途 |
 | --- | --- | --- | --- |
-| `assets/local/codex-pet/` | [xpy12367/codex-pet-DeepSeek-girl](https://github.com/xpy12367/codex-pet-DeepSeek-girl/tree/27843e4ba86cc439d29aa1c6b0591f206fa2514f) | `pet.json`、透明 WebP 精灵图、动作联系表、README | 优先用于全身桌宠 |
+| `assets/local/codex-pet/` | [xpy12367/codex-pet-DeepSeek-girl](https://github.com/xpy12367/codex-pet-DeepSeek-girl/tree/27843e4ba86cc439d29aa1c6b0591f206fa2514f) | `pet.json`、透明 WebP 精灵图、动作联系表、五个时长参考 GIF、README | 优先用于全身桌宠 |
 | `assets/local/emotes/` | [BrickAZ/deepseek-chan-emotes](https://github.com/BrickAZ/deepseek-chan-emotes/tree/0f970d9be7b33c6f7eae0f259062c8e3d40b7b3a) | 思考、点赞、打游戏三个 GIF 与 README | 比较大头表情的可读性 |
 
 Codex Pet 精灵图实测 1536×2288、RGBA，按上游 8×11 网格得到每格 192×208。
@@ -42,21 +42,21 @@ Codex Pet 精灵图实测 1536×2288、RGBA，按上游 8×11 网格得到每格
 
 ## 第一轮动作选择
 
-以下是选择计划，不是已经实现的固件动作映射：
+当前素材已按下列方式提供预览和资源包；设备状态自动事件映射仍待板级集成：
 
 | 产品动作 | 优先候选 | 尚需处理 |
 | --- | --- | --- |
 | 待机 | Codex Pet idle | 核对帧顺序、循环接缝及主体尺寸 |
 | 倾听 | Codex Pet waiting / 环视 | 选择视线朝向；尚无专用倾听动画 |
 | 思考 | Codex Pet working；GIF thinking 用于画风比较 | 选定主画风后再固定映射 |
-| 说话 | 待定 | 现有素材未确认有嘴型帧，不宣称已支持语音口型 |
+| 说话 | 明确复用待机占位 | 没有嘴型帧，不宣称支持语音口型 |
 | 开心 | Codex Pet waving / jumping | 区分单次动作与循环 |
 | 困惑 | Codex Pet failed | 检查语义，避免把每次网络错误演成夸张失败 |
 
-P1 后续交付：C11 状态与时序核心、真实调用入口、素材转换器及 240×240 预览。
+当前基于小智二开，复用其 GIF 播放和资源格式；不恢复原自研 C11 状态核心路线。当前转换与预览见 [docs/ASSETS.md](../docs/ASSETS.md)。
 全身用于待机和大动作；表情特写优先使用合适的原图，不直接放大小尺寸全身图来承诺清晰度。
-预览和固件复用同一份转换清单与帧时序，预转换 RGB565，目标 8–12 fps。
-GIF/WebP 是电脑端输入格式，不要求 ESP32 实时解码。实际 Flash 占用、背景合成、字节序和屏幕显示尚未实现或验证。
+画面使用透明 WebP（原预览 GIF 存在绿边，仅取时长），输出 GIF 由小智现有解码器播放；预览从同一最终 GIF 解出。统一调色板预量化 RGB565，采样上限 10 fps。
+带资源参考构建已验证，最终板型、显示 UI 叠层和实屏尚未验收。
 
 ## 来源与许可记录
 

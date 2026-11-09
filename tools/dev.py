@@ -6,12 +6,14 @@ import sys
 
 import container
 import native
+import pet_assets
 import xiaozhi
 
 
 def main():
     parser, commands = native.parser()
     xiaozhi.register(commands)
+    pet_assets.register(commands)
     parser.description = __doc__
     parser.add_argument("--native", action="store_true", help="Run directly (image maintenance/inside container)")
     parser.add_argument("--offline", action="store_true", help="Disable network in the development container")
@@ -34,7 +36,7 @@ def main():
                 container.pull_image(args)
             else:
                 container.pin_image(args)
-        elif args.native:
+        elif args.native or args.command == "preview":
             args.action(args)
         elif args.command == "setup":
             if args.host_only:

@@ -2,6 +2,7 @@
 
 import json
 import shutil
+from pathlib import Path
 
 import native
 
@@ -41,11 +42,25 @@ def build_reference(args):
     environment = native.firmware_environment()
     environment["IDF_PY_BUILD_JOBS"] = str(args.jobs)
     output = native.BUILD_ROOT / "xiaozhi-reference-s3-lcd"
+    if args.assets:
+        output = native.BUILD_ROOT / "xiaozhi-reference-s3-lcd-custom"
     defaults = [
         SOURCE / "sdkconfig.defaults",
         SOURCE / "sdkconfig.defaults.esp32s3",
         ROOT / "config/xiaozhi/reference-s3-lcd.defaults",
     ]
+    if args.assets:
+        source = Path(args.assets).resolve()
+        if not source.is_file() or not 12 <= source.stat().st_size <= 8 * 1024 * 1024:
+            raise ValueError("Custom assets must exist and fit the reference 8 MiB assets partition")
+        output.mkdir(parents=True, exist_ok=True)
+        asset_file = output / "input-assets.bin"
+        shutil.copyfile(source, asset_file)
+        custom_defaults = output / "custom-assets.defaults"
+        custom_defaults.write_text(
+            'CONFIG_FLASH_CUSTOM_ASSETS=y\nCONFIG_CUSTOM_ASSETS_FILE="' + str(asset_file) + '"\n'
+        )
+        defaults.append(custom_defaults)
     native.run(
         [
             native.python_path(),
@@ -72,4 +87,5 @@ def register(commands):
     check.set_defaults(action=lambda args: check_source())
     build = operations.add_parser("build", help="Build the upstream ESP32-S3 LCD reference, not the final XIAO board")
     build.add_argument("--profile", choices=[LOCK["reference_profile"]], required=True)
+    build.add_argument("--assets", help="Optional local custom assets.bin; uses a separate reference build directory")
     build.set_defaults(action=build_reference)
