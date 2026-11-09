@@ -22,14 +22,15 @@ python3 tools/dev.py --offline build --target host
 python3 tools/dev.py --offline --jobs 4 build --target esp32s3 --board bringup
 ```
 
-首次 setup 构建候选镜像；自有镜像发布并锁定 digest 后会直接拉取。日常命令复用已选镜像，容器产物在 `build/container/`。
+首次 setup 直接拉取 `tools/container-lock.json` 固定的公开 GHCR 镜像。日常命令复用同一 digest，容器产物在 `build/container/`。
 `bringup` 不假定 XIAO Plus 引脚和 PSRAM 配置；它是编译验证目标，不能替代最终板级适配。
 
 ## 文档
 
 - [构建与环境说明](docs/BUILDING.md)
 - [Docker 镜像发布与锁定](docs/DOCKER_RELEASE.md)
-- [Docker 验证报告](docs/DOCKER_VALIDATION.md)
+- [已发布镜像锁定验证](docs/IMAGE_PIN_VALIDATION.md)
+- [历史 Docker 候选验证](docs/DOCKER_VALIDATION.md)
 - [历史 P0 验证报告](docs/P0_VALIDATION.md)
 - [实施与 AI 交接计划](Plan.md)
 - [项目通用实现约束](Rules.md)

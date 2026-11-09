@@ -16,10 +16,9 @@ python3 tools/dev.py --offline build --target host
 python3 tools/dev.py --offline --jobs 4 build --target esp32s3 --board bringup
 ```
 
-`setup` 选择开发镜像，不在宿主机安装 SDK。当前尚未首次发布自有镜像，锁文件的 `image` 为 `null`，因此 setup 在本机构建候选镜像。
-首次发布并审核 digest 锁定更新后，setup 将直接拉取已固定的镜像，CI 也使用同一个 registry digest。
-构建完成的候选镜像按本地 `sha256` 内容 ID 选择，不通过可变 tag 执行任务；registry digest 和本地内容 ID 不是同一种标识。
-源码不变时重复 setup 使用 Docker 原生层缓存；日常 format/test/build 直接复用已选镜像，不重新安装工具。
+`setup` 直接拉取锁文件 `image` 固定的公开 GHCR 镜像，验证配方标签后选择同一个 registry digest；不在宿主机安装 SDK，也不重新构建工具镜像。CI 使用同一引用。
+日常 format/test/build 直接复用已选镜像，不重新安装工具。重复 setup 由 Docker 复用已拉取的有效层。
+维护者仍可显式 `image build` 构建候选，其本地内容 ID 与 registry digest 是不同标识；候选不自动替换 tracked 发布锁。
 
 `--offline` 适用于已选镜像中的 format/test/build，为容器禁用外部网络，用于证明当前构建链路自包含；它不用于 setup / image build，将来需要在线服务的命令不要加这个参数。
 `--jobs` 是顶层参数，放在子命令之前，默认 4。格式操作可选文件，例如：
@@ -62,7 +61,7 @@ python3 tools/dev.py image build
 镜像 ID 来自 Docker 的成功构建结果；发布镜像按 digest 拉取时检查其配方标签是否匹配当前 checkout。
 安装输入相同并不意味着两次独立构建得到完全相同的镜像字节；需要不同机器使用完全相同的镜像时，使用已发布并固定的 registry digest。
 
-镜像首次发布与更新流程见 [Docker 镜像发布](DOCKER_RELEASE.md)。不能把当前 `image: null` 描述为自有 registry 镜像已经发布或所有机器已使用同一个发布 digest。
+当前发布来源与以后更新流程见 [Docker 镜像发布](DOCKER_RELEASE.md)。运行验证见 [已发布镜像锁定验证](IMAGE_PIN_VALIDATION.md)；是否已在 main 生效以锁定 PR 的 merge 状态为准。
 
 ## CI
 
@@ -71,7 +70,7 @@ python3 tools/dev.py image build
 工作流上传镜像选择元数据、日志以及 `build/container/esp32s3-bringup/` 下的 BIN、ELF、map、分区和编译数据库。
 当前仍未提供完整的实机烧录发布包；板级确认在 P2，烧录与实机验收在 P6。
 
-验证结果见 [Docker 验证报告](DOCKER_VALIDATION.md)，历史 native 基线见 [P0 报告](P0_VALIDATION.md)。
+当前结果见 [已发布镜像验证](IMAGE_PIN_VALIDATION.md)；历史候选构建见 [Docker 报告](DOCKER_VALIDATION.md)，native 基线见 [P0 报告](P0_VALIDATION.md)。
 
 ## Native 维护入口
 
