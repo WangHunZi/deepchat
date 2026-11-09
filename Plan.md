@@ -1,6 +1,6 @@
 # DeepChat 实体桌宠实施计划
 
-状态：P0 已合并（PR #2）；Docker 开发环境作为 P0 后续功能已实现并完成本地验证，待独立 PR review / merge。P1 及后续功能未开始，设备烧录和实机验证未进行。
+状态：P0（PR #2）及 Docker 开发环境（PR #3）已合并；首次镜像发布成功，真实 digest 锁定改动待 PR review / merge。P1 及后续功能未开始，设备烧录和实机验证未进行。
 本文件是后续 AI 的实施及交接入口。已实现入口和实际结果见 [构建说明](docs/BUILDING.md) 与 [P0 验证报告](docs/P0_VALIDATION.md)；其余模块和命令仍为待实现目标。
 
 ## 1. 产品目标与第一版范围
@@ -226,9 +226,9 @@ P4 将此合同写入 `docs/PROTOCOL.md` 并冻结 fixtures，固件和后端不
 - [x] 在同一候选镜像中进行离线格式、测试、主机标准探测及固件构建；结果以 Docker 验证报告为准。
 - [x] CI 只准备一次候选 / 已锁定发布镜像，上传构建及镜像选择证据。
 - [x] 提供手动 main 发布工作流与 digest 锁定命令；发布与 pin 分离，均保留人类 review。
-- [ ] 首次自有 registry 镜像发布和 digest 锁定 PR（当前 PR 合并后由所有者手动触发，不伪造发布摘要）。
+- [x] 首次自有 registry 镜像发布成功，实际 digest 来自 run 42576609562；锁定改动已准备，待独立 PR review / merge。
 
-详见 [Docker 发布流程](docs/DOCKER_RELEASE.md) 与 [Docker 验证报告](docs/DOCKER_VALIDATION.md)。镜像功能代码可 review；首次发布尚未执行，默认 bootstrap 从源码配方构建，不能宣称已经使用自有发布镜像。
+详见 [Docker 发布流程](docs/DOCKER_RELEASE.md) 与 [已发布镜像验证](docs/IMAGE_PIN_VALIDATION.md)。镜像功能已 merge；首次发布完成，本轮将默认 bootstrap 从候选构建切换为真实 registry digest 拉取，生效于锁定 PR 合并后。
 
 ### P1：角色状态与素材流水线
 
@@ -403,7 +403,8 @@ python3 tools/dev.py monitor --port <实际串口>
 | --- | --- | --- |
 | 计划与规范 | 已 merge（PR #1） | 规范入口已生效；P0 已补齐格式器解析与实际构建验证 |
 | P0 构建基线 | 已 merge（PR #2） | native 基线及干净 CI 构建已通过，历史结果见 docs/P0_VALIDATION.md |
-| Docker 开发环境 | 已实现，待 review / merge | 离线格式、15/15 工具测试、主机标准探测及固件编译通过；见 docs/DOCKER_VALIDATION.md；首次 registry 发布及 pin 仍待人工触发 |
+| Docker 开发环境 | 已 merge（PR #3） | 候选镜像及离线验证通过，首次发布 run 42576609562 成功 |
+| 发布镜像 digest 锁定 | 待 review / merge | 真实发布摘要写入版本锁，当前验证见 docs/IMAGE_PIN_VALIDATION.md；不自动 merge |
 | P1 角色与素材 | 未开始 | 建立原创占位素材和可运行预览 |
 | P2 屏幕与板级 | 未开始 | 先获取具体屏幕/开发板资料，再确认引脚 |
 | P3 本地音频 | 未开始 | 接 P2 板级映射，实机验证等待器件 |
@@ -412,4 +413,4 @@ python3 tools/dev.py monitor --port <实际串口>
 | P6 烧录交付 | 未开始 | 生成可复现包，真实烧录与体验验收等待硬件 |
 | P7 用量增强 | 后续 | 不阻塞第一版桌宠 |
 
-下一位 AI 的起点：先确认 Docker 开发环境 PR 的审核与合并状态、以及首次镜像发布 / digest 锁定进度，再执行 P1。当前实际结果以验证报告与 PR checks 为准，不将待实现模块当作已有源码。硬件信息未齐时推进 P1、P4 的独立部分，并在相应阶段收集精确型号。
+下一位 AI 的起点：先确认发布镜像 digest 锁定 PR 已合并，再执行 P1。当前实际结果以验证报告与 PR checks 为准，不将待实现模块当作已有源码。硬件信息未齐时推进 P1、P4 的独立部分，并在相应阶段收集精确型号。

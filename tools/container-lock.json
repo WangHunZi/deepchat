@@ -1,5 +1,5 @@
 {
   "platform": "linux/amd64",
   "base_image": "python:3.12.14-bookworm@sha256:c90be507635af19768837aa7eeb2f4ce89a74d62962a335497b9df8edfb7f19d",
-  "image": null
+  "image": "ghcr.io/wanghunzi/deepchat-dev@sha256:e5e714e2cc20857ed1808374d23fcc772ff9644f6b7aa2c8441aa6c1a4b74eae"
 }

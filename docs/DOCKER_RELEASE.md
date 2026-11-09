@@ -2,7 +2,9 @@
 
 本仓库使用 GHCR 作为开发镜像发布位置：`ghcr.io/wanghunzi/deepchat-dev`。
 发布是明确的手动操作；PR 验证、push 或 merge 不自动公开镜像，不自动修改版本锁或 merge。
-当前首次发布尚未执行，`tools/container-lock.json` 的 `image` 为 `null`；本地和 CI 使用候选构建。
+首次发布已完成：[run 42576609562](https://github.com/WangHunZi/deepchat/actions/runs/42576609562)，来源为已合并的 main 提交 `721967cc5f3da8661ffa0dff60075545856c7e45`。
+本次真实 digest 来自该运行的 `released-container-lock` artifact，现已写入待 review 的 `tools/container-lock.json`；package 已由所有者设为 Public。合并该锁定 PR 后，默认 setup 和 CI 直接拉取该镜像。
+本地匿名拉取与构建结果见 [已发布镜像验证](IMAGE_PIN_VALIDATION.md)。以下流程保留用于后续版本更新。
 
 ## 1. 审核并合并镜像配方
 
