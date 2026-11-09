@@ -9,7 +9,7 @@
 首次目标是可接线、可配置、可烧录并能看到角色的固件；参考构建通过不等于目标硬件适配完成。
 
 已合并：PR #1 规范、#2 P0 基线、#3 Docker 开发镜像、#4 发布镜像 digest 锁定、#5 DeepSeek 娘素材来源与本地收集。
-小智基础工程 PR #6 已合并；当前功能已实现角色素材转换、同源 240×240 预览与带素材参考构建，待本功能 PR review。实际结果见 docs/ASSETS_VALIDATION.md。
+小智基础工程 PR #6 已合并；素材与预览 PR #7 已合并；当前功能接入角色常驻界面、真实状态/音频结束联动和隔离上游补丁构建，待本功能 PR review。实际结果见 docs/ROLE_UI_VALIDATION.md。
 原自行实现的角色核心停留在本地 `feat/pet-state-animation`，未推送或提交 PR，不作为新路线的依赖。
 
 ## 1. 复用与自有代码的边界
@@ -61,7 +61,7 @@
 
 - [x] 来源与本地收集：两组固定来源、逐文件 SHA-256、许可记录，见 assets/README.md（PR #5）。
 - [x] 复用上游 GIF 解码与 mmap 资源打包链，支持已有 FLASH_CUSTOM_ASSETS 构建路径，没有新建资源格式或设备播放器。
-- [x] 选定 Codex Pet 同一画风，五段动画映射六动作；说话明确待机占位，没有嘴型。设备状态自动映射留待 P3。
+- [x] 选定 Codex Pet 同一画风，五段动画映射六动作；说话明确待机占位，没有嘴型。P3 当前实现已接入真实事件；实机待验证。
 - [x] 用透明 WebP 消除原 GIF 绿边，统一全局锚点与 240×240 画布；保留原时长参考，10 fps 上限采样。
 - [x] 提供单 HTML/本机 HTTP 预览，支持切换、暂停、逐帧、拖动和比例；最终 GIF 的 30 帧经上游原解码器逐像素/时长验证。
 - [x] 记录转换、颜色及预算：最终包 1443207 B；11 个素材测试、25 个工具测试、带素材参考构建与浏览器桌面/手机验证通过。
@@ -69,7 +69,12 @@
 
 验收：用户能直观看到 240×240 的角色大小、表情和动作，并能按场景切换。预览不等于实机刷新率、色彩或音频验证。
 
-### P3：XIAO 板级适配和本地硬件
+### P3：角色界面、XIAO 板级适配和本地硬件
+
+- [x] 角色主界面隐藏遮挡父层，诊断场景恢复；复用原字幕偏好和低电量弹层。
+- [x] 连接小智真实状态、手动停止、TTS stop 与 AudioService 排空事件；情绪播放后复用原每秒刷新恢复待机。
+- [x] 补丁和自有头文件在隔离生成源构建，原子准备与依赖锁指纹有测试；不修改原上游子模块。
+- [x] 主机验证复用真实状态机、LVGL、GIF 播放器，参考构建与限制见 docs/ROLE_UI_VALIDATION.md。
 
 - [ ] 获取器件资料，编写 docs/HARDWARE.md，填写焊盘与 GPIO 对照、电源、SPI/I²S 分配，核对占用与冲突。
 - [ ] 通过小智板级扩展点接入实际 XIAO 组合；复用现有 LCD、简单 I²S 音频与按键能力。具体修改以可 review 的补丁/叠加文件管理，不能只修改子模块工作树。
@@ -118,6 +123,8 @@ python3 tools/dev.py assets setup
 python3 tools/dev.py --offline assets build
 python3 tools/dev.py --offline assets check
 python3 tools/dev.py preview
+python3 tools/dev.py --offline xiaozhi test
+python3 tools/dev.py --offline --jobs 4 xiaozhi build --profile reference-s3-lcd --pet --assets assets/generated/deepseek/assets.bin
 ```
 
 旧 `build --target esp32s3 --board bringup` 仍是历史最小应用；它不构建小智。
@@ -134,4 +141,4 @@ python3 tools/dev.py preview
 - 编译与测试交给独立测试子代理，报告命令、数量、通过/失败/跳过/未运行原因；上游测试和自有工具测试分别说明。
 - 每份 PR 说明基线、依赖、commit 阅读顺序、实际验证、未验证硬件与服务；用户决定 merge。未经新授权不自动 merge 或发布镜像/环境。
 - 使用当前 checkout，除非用户要求不创建额外 worktree。上游修改以可审核文件/补丁管理，保持原作者与许可；不改写已审阅历史。
-- 后续 AI 先核对当前 P2 PR 状态与 docs/ASSETS_VALIDATION.md，再收集 P3 目标板资料，接入角色界面与实际状态事件映射。不要重新实现废弃的 HTTP/WAV 服务或 C11 角色核心。
+- 后续 AI 先核对当前 P2 PR 状态与 docs/ASSETS_VALIDATION.md，再确认角色界面 PR 状态，收集 P3 目标板资料并推进最终 XIAO 板级适配。不要重新实现废弃的 HTTP/WAV 服务或 C11 角色核心。
