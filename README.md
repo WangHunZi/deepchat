@@ -1,43 +1,47 @@
 # DeepChat 实体桌宠
 
-目标：让一个可爱的角色生活在 ESP32-S3 驱动的小屏幕里，具备待机动画、按键语音对话和情绪反馈。
+目标：让蓝发鲸鱼女仆 DeepSeek 娘生活在 ESP32-S3 小屏幕里，通过语音互动和表情反馈陪伴用户。
 
-当前已实现 P0 构建基线，并将默认开发命令切换到 Docker 镜像：工具链预装在镜像中，源码挂载，宿主机无需 SDK 或编译器。
-当前固件只输出启动信息；角色动画、音频、语音后端和最终板级适配按计划继续开发，尚未完成实机验收。
+项目基于 MIT 的 [小智 ESP32](https://github.com/78/xiaozhi-esp32) 二次开发，复用其 C++ 语音、显示、表情和通信能力。上游源码固定在 Git 子模块，开发工具固定在已发布的 Docker 镜像。
+当前接入的是 ESP32-S3 LCD 参考工程；XIAO ESP32S3 Plus 的最终接线、角色素材替换与实机验收尚未完成。
 
-## 开始开发
+## 开发入口
 
-需要 Docker（含 Buildx）、Git 和 Python 3.10+。在仓库根目录执行：
+需要 Git、Docker（含 Buildx）及 Python 3.10+：
 
 ```sh
+git submodule update --init --depth 1
 python3 tools/dev.py setup
 python3 tools/dev.py --offline format --check
 python3 tools/dev.py --offline test --suite tools
-python3 tools/dev.py --offline build --target host
+python3 tools/dev.py --offline xiaozhi check
+# 首次下载业务组件需要网络：
+python3 tools/dev.py --jobs 4 xiaozhi build --profile reference-s3-lcd
 ```
 
-使用同一已选镜像交叉编译最小固件：
+reference-s3-lcd 使用上游参考板配置，不代表 XIAO 接线或可直接烧录固件。旧 build --target esp32s3 --board bringup 仍是历史最小启动应用。
+
+## 查看角色素材
 
 ```sh
-python3 tools/dev.py --offline --jobs 4 build --target esp32s3 --board bringup
+python3 tools/collect_assets.py
+python3 tools/collect_assets.py --check
 ```
 
-首次 setup 直接拉取 `tools/container-lock.json` 固定的公开 GHCR 镜像。日常命令复用同一 digest，容器产物在 `build/container/`。
-`bringup` 不假定 XIAO Plus 引脚和 PSRAM 配置；它是编译验证目标，不能替代最终板级适配。
+原始联系表及 GIF 位于 assets/local/，来源与动作选择见 [素材说明](assets/README.md)。240×240 成品预览是下一份功能交付，当前构建通过不能代表角色画面或实机通过。
 
 ## 文档
 
-- [构建与环境说明](docs/BUILDING.md)
+- [小智接入、构建与看效果的方法](docs/XIAOZHI.md)
+- [小智参考工程验证报告](docs/XIAOZHI_VALIDATION.md)
+- [当前实施与 AI 交接计划](Plan.md)
+- [项目通用实现约束](Rules.md)
+- [命名、格式与 API 风格](STYLE_GUIDE.md)
+- [AI 工作约定](AGENTS.md)
+- [DeepSeek 娘素材来源与本地收集](assets/README.md)
+- [Docker 工具环境与历史基线](docs/BUILDING.md)
 - [Docker 镜像发布与锁定](docs/DOCKER_RELEASE.md)
 - [已发布镜像锁定验证](docs/IMAGE_PIN_VALIDATION.md)
-- [DeepSeek 娘素材来源与本地收集](assets/README.md)
-- [历史 Docker 候选验证](docs/DOCKER_VALIDATION.md)
-- [历史 P0 验证报告](docs/P0_VALIDATION.md)
-- [实施与 AI 交接计划](Plan.md)
-- [项目通用实现约束](Rules.md)
-- [代码与 API 风格](STYLE_GUIDE.md)
-- [AI 工作约定](AGENTS.md)
 - [日志规范](docs/LOGGING.md)
 
-沿用 thread-cascade-over-coap 的命名形式、格式及 API 文档风格，公共 C 符号采用 `DC` 前缀。
-代码采用 [MIT 许可证](LICENSE)；第三方库及后续角色素材保留各自许可。
+自有代码采用 [MIT](LICENSE)；保留小智及组件各自许可。第三方角色素材保留原来源和许可，不因代码开源自动变成 MIT。

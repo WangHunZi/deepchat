@@ -6,10 +6,12 @@ import sys
 
 import container
 import native
+import xiaozhi
 
 
 def main():
     parser, commands = native.parser()
+    xiaozhi.register(commands)
     parser.description = __doc__
     parser.add_argument("--native", action="store_true", help="Run directly (image maintenance/inside container)")
     parser.add_argument("--offline", action="store_true", help="Disable network in the development container")
