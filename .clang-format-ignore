@@ -1,0 +1,13 @@
+generated/
+build*/
+lib/
+libs/
+third_party/
+third_parties/
+*.yml
+*.yaml
+**/VERSION
+managed_components/
+.sdk/
+.venv/
+assets/generated/

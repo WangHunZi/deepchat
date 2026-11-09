@@ -1,0 +1,17 @@
+build/
+build-*/
+artifacts/
+.sdk/
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.pyc
+.env
+.env.*
+!.env.example
+config/local/
+sdkconfig
+sdkconfig.old
+managed_components/
+assets/generated/
