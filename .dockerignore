@@ -1,0 +1,10 @@
+# Only installation inputs enter the context. Source and user credentials are mounted at runtime.
+**
+!docker/
+!docker/Dockerfile
+!tools/
+!tools/native.py
+!tools/sdk-lock.json
+!tools/requirements-host.txt
+!tools/requirements-idf.txt
+!tools/idf-constraints.txt

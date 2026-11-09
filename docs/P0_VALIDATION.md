@@ -1,5 +1,7 @@
 # P0 本地验证报告
 
+历史报告：对应 PR #2 的 native 实现。当前默认入口已容器化；维护者复现 native 检查时加 `--native`。当前结果见 [Docker 验证报告](DOCKER_VALIDATION.md)。
+
 日期：2026-11-09。执行者：独立测试代理；目标：开发工具与 ESP32-S3 `bringup` 构建基线。
 环境：Linux x86_64，Python 3.12.14，主机 GCC/G++ 14.2.0。准确 SDK 与项目工具版本见 [版本锁](../tools/sdk-lock.json)。
 本报告记录本地验证，GitHub Actions 运行状态以对应 PR 的 checks 为准。
