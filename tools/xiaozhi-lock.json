@@ -1,0 +1,6 @@
+{
+  "repository": "https://github.com/78/xiaozhi-esp32.git",
+  "revision": "a73e9a7e266e3196d1368ba46c30bee0d81f0a64",
+  "license": "MIT",
+  "reference_profile": "reference-s3-lcd"
+}
