@@ -1,0 +1,73 @@
+name: P0 build baseline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  host:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12.14'
+      - name: Install pinned host tools without ESP-IDF
+        run: python3 tools/dev.py setup --host-only
+      - name: Check source formatting and Python lint
+        run: python3 tools/dev.py format --check
+      - name: Verify development command behavior
+        run: python3 tools/dev.py test --suite tools
+      - name: Verify C11 and C++17 host compilers
+        run: python3 tools/dev.py build --target host
+
+  firmware:
+    needs: host
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12.14'
+      - name: Install pinned ESP-IDF and cross tools
+        run: |
+          mkdir -p artifacts
+          python3 tools/dev.py --jobs 4 setup 2>&1 | tee artifacts/setup.log
+      - name: Build ESP32-S3 without assumed board peripherals
+        run: python3 tools/dev.py --jobs 4 build --target esp32s3 --board bringup 2>&1 | tee artifacts/firmware.log
+      - name: Retain build evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: esp32s3-bringup
+          if-no-files-found: warn
+          path: |
+            artifacts/*.log
+            tools/sdk-lock.json
+            tools/requirements-*.txt
+            build/esp32s3-bringup/deepchat.bin
+            build/esp32s3-bringup/deepchat.elf
+            build/esp32s3-bringup/deepchat.map
+            build/esp32s3-bringup/bootloader/bootloader.bin
+            build/esp32s3-bringup/partition_table/partition-table.bin
+            build/esp32s3-bringup/flasher_args.json
+            build/esp32s3-bringup/project_description.json
+            build/esp32s3-bringup/sdkconfig
+            build/esp32s3-bringup/compile_commands.json
