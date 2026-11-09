@@ -17,3 +17,5 @@
 - 当前本地 commit 授权不等于任意 push 或发布授权；用户要求提交 PR 时可推送对应功能分支并创建 PR。不修改或发布云环境配置。
 
 角色构建通过 --pet 显式选择，在 build 下准备隔离的上游补丁副本；自有叠加头文件位于 src/xiaozhi，禁止直接改子模块后声称已交付补丁。主机入口 xiaozhi test 复用真实 FSM/LVGL/GIF，不能替代 FreeRTOS/音频/网络或实机验收。
+
+XIAO Plus / ST7789 240×240 已有独立 --display-test 与 --pet 两种目标板构建，接线/烧录见 docs/HARDWARE.md，独立验证见 docs/XIAO_BOARD_VALIDATION.md。测试图 CI artifact 不含角色素材。屏幕 BL 电路、音频功放负载、实机仍未确认；上游 Connecting 中松开 PTT 的边界已记录，后续音频交互阶段需修复并验收。不要将参考板或交叉编译当作实机通过。

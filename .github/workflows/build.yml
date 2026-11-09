@@ -53,8 +53,34 @@ jobs:
         run: python3 tools/dev.py --offline xiaozhi test 2>&1 | tee artifacts/role-tests.log
       - name: Compile isolated role UI using reference resources offline
         run: python3 tools/dev.py --offline --jobs 4 xiaozhi build --profile reference-s3-lcd --pet --assets build/container/xiaozhi-reference-s3-lcd/generated_assets.bin 2>&1 | tee artifacts/role-build.log
+      - name: Compile XIAO Plus isolated display test offline
+        run: python3 tools/dev.py --offline --jobs 4 xiaozhi build --profile xiao-esp32s3-plus-st7789 --display-test 2>&1 | tee artifacts/xiao-display-test.log
+      - name: Compile XIAO Plus role integration with reference resources offline
+        run: python3 tools/dev.py --offline --jobs 4 xiaozhi build --profile xiao-esp32s3-plus-st7789 --pet --assets build/container/xiaozhi-reference-s3-lcd/generated_assets.bin 2>&1 | tee artifacts/xiao-role-build.log
       - name: Build ESP32-S3 without assumed board peripherals offline
         run: python3 tools/dev.py --offline --jobs 4 build --target esp32s3 --board bringup 2>&1 | tee artifacts/firmware.log
+      - name: Collect XIAO display-test flashing files
+        run: |
+          python3 - <<'PY'
+          import json
+          import shutil
+          from pathlib import Path
+          for build in Path("build/container/xiaozhi-pet").glob("*/build"):
+              config = build / "sdkconfig"
+              if config.exists() and "CONFIG_DC_DISPLAY_TEST=y" in config.read_text():
+                  target = Path("artifacts/xiao-display-test")
+                  metadata = json.loads((build / "flasher_args.json").read_text())
+                  for name in ["flash_args", "flasher_args.json", "sdkconfig", *metadata["flash_files"].values()]:
+                      output = target / name
+                      output.parent.mkdir(parents=True, exist_ok=True)
+                      shutil.copyfile(build / name, output)
+          PY
+      - name: Retain XIAO test firmware without character assets
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: xiao-display-test
+          path: artifacts/xiao-display-test/
+          if-no-files-found: error
       - name: Retain build and image evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

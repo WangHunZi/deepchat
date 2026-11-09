@@ -64,18 +64,18 @@ Cancel 返回 Idle 下的待机刷新动作，因为上游同状态转换成功�
 ## 如何管理上游修改
 
 - patches/xiaozhi/pet-ui.patch：Application、Display/LcdDisplay 的小范围补丁，保留上游风格，不复制整个固件。
-- src/xiaozhi/：两个自有 C++ 显示映射/布局头文件，编译时叠加到对应 main 目录；由现有格式入口覆盖。
+- src/xiaozhi/：自有 C++ 显示映射/布局头文件及 Plus 板级代码，编译时叠加到对应 main 目录；由现有格式入口覆盖。
 - tools/xiaozhi_overlay.py：从固定上游 git archive 创建生成副本，复制头文件并 git apply；补丁失败不发布半成品源码目录。
-- 生成位置：build/container/xiaozhi-pet/<输入指纹>/source，固件在同级 build。指纹包含上游 revision、补丁、叠加文件及业务依赖锁。
+- 生成位置：build/container/xiaozhi-pet/<输入指纹>/source，固件在同级 build。指纹包含上游 revision、所选 profile/模式及配置、补丁、叠加文件及业务依赖锁。
 - 原子发布后的同输入副本可复用；补丁/头文件/锁更新会进入新目录，旧构建不被覆盖。生成目录是构建缓存，不作为编辑源。
 - 复用原固定 managed_components 缓存；生成源有自己的依赖锁和生成头文件。固定子模块 tracked 工作树保持 clean。
 
-CI 先构建上游参考工程、运行七项真实组件主机测试，再用默认参考资源编译 --pet 补丁。此步骤只验证固件代码可构建，不下载第三方角色，也不把默认参考资源宣称为 DeepSeek 娘素材；实际角色包的完整参考构建另有本地报告。
-CI 角色构建日志和 CTest 日志保留为 artifact，不发布角色固件或镜像。
+CI 先构建上游参考工程、运行八项主机测试（七项角色组件、一项测试图像素），再用默认参考资源编译 --pet 补丁。此步骤只验证固件代码可构建，不下载第三方角色，也不把默认参考资源宣称为 DeepSeek 娘素材；实际角色包的完整参考构建另有本地报告。
+CI 角色构建日志和 CTest 日志保留为 artifact，不发布角色固件或镜像。XIAO 目标板增加同样的角色编译检查，并仅分发独立测试图固件，详见 [硬件说明](HARDWARE.md)。
 
 ## 怎么确认行为正确
 
-电脑上先运行 xiaozhi test，检查 manual、cancel、feedback、diagnostics、layout、gif-once、gif-loop 七项。源码中的测试使用真实状态转换与 LVGL，不检查私有计数值或伪造播放器。
+电脑上先运行 xiaozhi test；角色部分检查 manual、cancel、feedback、diagnostics、layout、gif-once、gif-loop 七项。源码中的测试使用真实状态转换与 LVGL，不检查私有计数值或伪造播放器。
 原浏览器预览仍可用来检查素材画面，它没有模拟整个 FreeRTOS Application、网络或固件 UI；本轮没有把它改成第二套状态机。
 
 拿到同型号硬件并确认接线后，按以下路径实测：
