@@ -37,8 +37,12 @@ jobs:
           cp config/local/container-image.json artifacts/container-image.json
       - name: Check source formatting and Python lint offline
         run: python3 tools/dev.py --offline format --check
+      - name: Install hash-locked asset business dependency
+        run: python3 tools/dev.py assets setup
       - name: Verify development command behavior offline
         run: python3 tools/dev.py --offline test --suite tools
+      - name: Verify synthetic assets with the upstream packer and GIF decoder offline
+        run: python3 tools/dev.py --offline assets test
       - name: Verify C11 and C++17 host compilers offline
         run: python3 tools/dev.py --offline build --target host
       - name: Verify locked Xiaozhi source offline
