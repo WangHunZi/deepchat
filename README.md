@@ -30,6 +30,7 @@ python3 tools/dev.py --offline --jobs 4 build --target esp32s3 --board bringup
 - [构建与环境说明](docs/BUILDING.md)
 - [Docker 镜像发布与锁定](docs/DOCKER_RELEASE.md)
 - [已发布镜像锁定验证](docs/IMAGE_PIN_VALIDATION.md)
+- [DeepSeek 娘素材来源与本地收集](assets/README.md)
 - [历史 Docker 候选验证](docs/DOCKER_VALIDATION.md)
 - [历史 P0 验证报告](docs/P0_VALIDATION.md)
 - [实施与 AI 交接计划](Plan.md)
