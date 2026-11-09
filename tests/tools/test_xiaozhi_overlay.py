@@ -27,6 +27,7 @@ class XiaozhiOverlayTest(unittest.TestCase):
         self.source = self.root / "upstream"
         self.source.mkdir()
         (self.source / "hello.txt").write_text("original\n")
+        (self.source / "board.txt").write_text("reference\n")
         (self.source / ".gitignore").write_text("managed_components/\n")
         environment = os.environ | {
             "GIT_AUTHOR_NAME": "Fixture",
@@ -98,6 +99,61 @@ class XiaozhiOverlayTest(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 1)
         self.assertIn("--pet requires --assets", result.stderr)
+
+    def test_xiao_modes_apply_board_patch_and_keep_role_patch_opt_in(self):
+        board_patch = self.patch.with_name("xiao-plus.patch")
+        board_patch.write_text("--- a/board.txt\n+++ b/board.txt\n@@ -1 +1 @@\n-reference\n+xiao\n")
+        pattern = overlay.prepare(
+            self.source, self.revision, pet=False, profile="xiao-esp32s3-plus-st7789", display_test=True
+        )
+        pet = overlay.prepare(self.source, self.revision, profile="xiao-esp32s3-plus-st7789")
+        self.assertNotEqual(pattern, pet)
+        self.assertEqual((pattern / "board.txt").read_text(), "xiao\n")
+        self.assertEqual((pattern / "hello.txt").read_text(), "original\n")
+        self.assertEqual((pet / "board.txt").read_text(), "xiao\n")
+        self.assertEqual((pet / "hello.txt").read_text(), "role\n")
+        self.assertEqual((self.source / "board.txt").read_text(), "reference\n")
+
+    def test_profile_defaults_changes_cannot_reuse_previous_sdkconfig(self):
+        config = self.root / "config/xiaozhi/reference-s3-lcd.defaults"
+        config.write_text("CONFIG_FIXTURE=old\n")
+        previous = overlay.prepare(self.source, self.revision)
+        config.write_text("CONFIG_FIXTURE=new\n")
+        self.assertNotEqual(previous, overlay.prepare(self.source, self.revision))
+
+    def test_display_test_defaults_changes_get_a_new_build(self):
+        self.patch.with_name("xiao-plus.patch").write_text(
+            "--- a/board.txt\n+++ b/board.txt\n@@ -1 +1 @@\n-reference\n+xiao\n"
+        )
+        config = self.root / "config/xiaozhi/display-test.defaults"
+        config.write_text("CONFIG_DC_DISPLAY_TEST=y\n")
+        kwargs = {"pet": False, "profile": "xiao-esp32s3-plus-st7789", "display_test": True}
+        previous = overlay.prepare(self.source, self.revision, **kwargs)
+        config.write_text("CONFIG_DC_DISPLAY_TEST=y\nCONFIG_FIXTURE=y\n")
+        self.assertNotEqual(previous, overlay.prepare(self.source, self.revision, **kwargs))
+
+    def test_invalid_hardware_modes_fail_before_source_or_toolchain_work(self):
+        cases = [
+            (["--profile", "reference-s3-lcd", "--display-test"], "--display-test requires the XIAO"),
+            (["--profile", "xiao-esp32s3-plus-st7789"], "requires --display-test or --pet"),
+            (
+                ["--profile", "xiao-esp32s3-plus-st7789", "--display-test", "--assets", "nonexistent.bin"],
+                "cannot use --pet or --assets",
+            ),
+            (
+                ["--profile", "xiao-esp32s3-plus-st7789", "--display-test", "--pet", "--assets", "nonexistent.bin"],
+                "cannot use --pet or --assets",
+            ),
+        ]
+        for arguments, expected in cases:
+            with self.subTest(arguments=arguments):
+                result = subprocess.run(
+                    [sys.executable, ROOT / "tools/dev.py", "--native", "xiaozhi", "build", *arguments],
+                    capture_output=True,
+                    text=True,
+                )
+                self.assertEqual(result.returncode, 1)
+                self.assertIn(expected, result.stderr)
 
     def test_dependency_lock_changes_cannot_reuse_a_stale_source_lock(self):
         previous = overlay.prepare(self.source, self.revision)

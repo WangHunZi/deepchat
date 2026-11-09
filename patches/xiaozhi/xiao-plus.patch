@@ -1,0 +1,37 @@
+--- a/main/CMakeLists.txt
++++ b/main/CMakeLists.txt
+@@ -91,7 +91,12 @@
+ 
+ # Select the board source directory from Kconfig
+ # Set default assets if the board uses partition table V2
+-if(CONFIG_BOARD_TYPE_BREAD_COMPACT_WIFI)
++if(CONFIG_BOARD_TYPE_DEEPCHAT_XIAO_ESP32S3_PLUS)
++    set(BOARD_DIR "deepchat-xiao-plus")
++    list(APPEND SOURCES "boards/deepchat-xiao-plus/DCXiaoPlusBoard.cpp")
++    set(BUILTIN_TEXT_FONT font_noto_sans_basic_16_4)
++    set(BUILTIN_ICON_FONT font_material_symbols_16_4)
++elseif(CONFIG_BOARD_TYPE_BREAD_COMPACT_WIFI)
+     set(BOARD_DIR "bread-compact-wifi")
+     set(BUILTIN_TEXT_FONT font_noto_sans_basic_14_1)
+     set(BUILTIN_ICON_FONT font_material_symbols_14_1)
+--- a/main/Kconfig.projbuild
++++ b/main/Kconfig.projbuild
+@@ -175,6 +175,9 @@
+     config BOARD_TYPE_BREAD_COMPACT_WIFI
+         bool "Bread Compact Wi-Fi (面包板)"
+         depends on IDF_TARGET_ESP32S3
++    config BOARD_TYPE_DEEPCHAT_XIAO_ESP32S3_PLUS
++        bool "DeepChat XIAO ESP32S3 Plus + ST7789 240x240"
++        depends on IDF_TARGET_ESP32S3
+     config BOARD_TYPE_BREAD_COMPACT_WIFI_LCD
+         bool "Bread Compact Wi-Fi + LCD (面包板)"
+         depends on IDF_TARGET_ESP32S3
+@@ -1246,3 +1249,8 @@
+ endmenu
+ 
+ endmenu
++
++config DC_DISPLAY_TEST
++    bool "DeepChat isolated LCD test pattern"
++    depends on BOARD_TYPE_DEEPCHAT_XIAO_ESP32S3_PLUS
++    default n

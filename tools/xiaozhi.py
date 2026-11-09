@@ -8,6 +8,7 @@ import native
 
 ROOT = native.REPO
 SOURCE = ROOT / "third_party/xiaozhi-esp32"
+XIAO_PROFILE = "xiao-esp32s3-plus-st7789"
 LOCK = json.loads((ROOT / "tools/xiaozhi-lock.json").read_text())
 
 
@@ -22,7 +23,7 @@ def check_source():
     ).stdout
     if changes:
         raise ValueError("Xiaozhi has local source changes; preserve them before building the locked reference")
-    print(f"Xiaozhi source: {revision}; reference only, hardware unvalidated")
+    print(f"Xiaozhi source: {revision}; hardware unvalidated")
 
 
 def prepare_dependencies():
@@ -39,6 +40,11 @@ def prepare_dependencies():
 def build_reference(args):
     if args.pet and not args.assets:
         raise ValueError("--pet requires --assets with a generated role resource pack")
+    display_test = getattr(args, "display_test", False)
+    if display_test and (args.profile != XIAO_PROFILE or args.pet or args.assets):
+        raise ValueError("--display-test requires the XIAO profile and cannot use --pet or --assets")
+    if args.profile == XIAO_PROFILE and not (display_test or args.pet):
+        raise ValueError("The XIAO profile requires --display-test or --pet with --assets")
     check_source()
     prepare_dependencies()
     environment = native.firmware_environment()
@@ -47,16 +53,20 @@ def build_reference(args):
     if args.assets:
         output = native.BUILD_ROOT / "xiaozhi-reference-s3-lcd-custom"
     source_tree = SOURCE
-    if args.pet:
+    if args.pet or args.profile == XIAO_PROFILE:
         import xiaozhi_overlay
 
-        source_tree = xiaozhi_overlay.prepare(SOURCE, LOCK["revision"])
+        source_tree = xiaozhi_overlay.prepare(
+            SOURCE, LOCK["revision"], pet=args.pet, profile=args.profile, display_test=display_test
+        )
         output = source_tree.parent / "build"
     defaults = [
         source_tree / "sdkconfig.defaults",
         source_tree / "sdkconfig.defaults.esp32s3",
-        ROOT / "config/xiaozhi/reference-s3-lcd.defaults",
+        ROOT / f"config/xiaozhi/{args.profile}.defaults",
     ]
+    if display_test:
+        defaults.append(ROOT / "config/xiaozhi/display-test.defaults")
     if args.assets:
         source = Path(args.assets).resolve()
         if not source.is_file() or not 12 <= source.stat().st_size <= 8 * 1024 * 1024:
@@ -85,7 +95,10 @@ def build_reference(args):
         ],
         env=environment,
     )
-    print(f"Reference build complete: {output}; DO NOT flash as a XIAO firmware")
+    if args.profile == XIAO_PROFILE:
+        print(f"XIAO build complete: {output}; hardware validation pending; see docs/HARDWARE.md")
+    else:
+        print(f"Reference build complete: {output}; DO NOT flash as a XIAO firmware")
 
 
 def register(commands):
@@ -95,10 +108,11 @@ def register(commands):
     check.set_defaults(action=lambda args: check_source())
     tests = operations.add_parser("test", help="Run real upstream FSM/LVGL/GIF host tests for the role UI")
     tests.set_defaults(action=test_pet)
-    build = operations.add_parser("build", help="Build the upstream ESP32-S3 LCD reference, not the final XIAO board")
-    build.add_argument("--profile", choices=[LOCK["reference_profile"]], required=True)
+    build = operations.add_parser("build", help="Build a reference or explicit XIAO hardware profile")
+    build.add_argument("--profile", choices=[LOCK["reference_profile"], XIAO_PROFILE], required=True)
     build.add_argument("--assets", help="Optional local custom assets.bin; uses a separate reference build directory")
     build.add_argument("--pet", action="store_true", help="Build the isolated role UI patch; requires --assets")
+    build.add_argument("--display-test", action="store_true", help="XIAO LCD pattern without audio/network startup")
     build.set_defaults(action=build_reference)
 
 

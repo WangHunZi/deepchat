@@ -33,3 +33,8 @@ include(CTest)
 foreach(case manual cancel feedback diagnostics layout gif-once gif-loop)
     add_test(NAME pet-role-${case} COMMAND DCPetRoleTest ${case})
 endforeach()
+
+add_executable(DCDisplayPatternTest DCDisplayPatternTest.cpp)
+target_include_directories(DCDisplayPatternTest PRIVATE "${OVERLAY_ROOT}/main/boards/deepchat-xiao-plus")
+target_compile_options(DCDisplayPatternTest PRIVATE -Wall -Wextra -Wpedantic -Werror)
+add_test(NAME board-display-pattern COMMAND DCDisplayPatternTest)

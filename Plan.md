@@ -5,11 +5,11 @@
 用户已选择：允许 C++，优先基于 MIT 的 [小智 ESP32](https://github.com/78/xiaozhi-esp32) 二开，减少从零实现。
 本计划取代此前“独立 C11 状态机 + 自研 HTTP/WAV 后端”的实施路线；历史 P0 和素材收集结果保留。
 
-产品仍是 DeepSeek 娘实体桌宠：240×240 候选小屏常驻角色、按键语音交互、表情反馈。先实现单设备 USB 供电，沿用上游现成语音/显示/传输能力。
+产品仍是 DeepSeek 娘实体桌宠：240×240 ST7789 SPI 小屏常驻角色、按键语音交互、表情反馈。先实现单设备 USB 供电，沿用上游现成语音/显示/传输能力。
 首次目标是可接线、可配置、可烧录并能看到角色的固件；参考构建通过不等于目标硬件适配完成。
 
 已合并：PR #1 规范、#2 P0 基线、#3 Docker 开发镜像、#4 发布镜像 digest 锁定、#5 DeepSeek 娘素材来源与本地收集。
-小智基础工程 PR #6 已合并；素材与预览 PR #7 已合并；当前功能接入角色常驻界面、真实状态/音频结束联动和隔离上游补丁构建，待本功能 PR review。实际结果见 docs/ROLE_UI_VALIDATION.md。
+小智基础工程 PR #6 已合并；素材与预览 PR #7 已合并；PR #8 角色界面与真实事件联动已合并；本轮接入 XIAO Plus / ST7789 板级配置、独立测试图和角色构建，待本功能 PR review。实际结果见 docs/ROLE_UI_VALIDATION.md。
 原自行实现的角色核心停留在本地 `feat/pet-state-animation`，未推送或提交 PR，不作为新路线的依赖。
 
 ## 1. 复用与自有代码的边界
@@ -26,14 +26,14 @@
 
 | 部件 | 用户提出的型号 / 计划 | 必须确认 |
 | --- | --- | --- |
-| 主控 | Seeed Studio XIAO ESP32S3 Plus | 实物型号、官方原理图、Flash/PSRAM 模式与容量、可用焊盘 |
+| 主控 | Seeed Studio XIAO ESP32S3 Plus | 已核对官方 Plus：16 MB Flash、8 MB Octal PSRAM；实物版本待验收 |
 | 麦克风 | INMP441 | 引脚、供电、L/R 声道、I²S 位宽与实际录音幅度 |
 | 功放 / 扬声器 | MAX98357A，扬声器未定 | 供电、增益、阻抗和功率、音量 |
-| 屏幕 | 240×240 SPI，ST7789 仅为候选 | 商品资料、驱动、SPI 模式、偏移、旋转、色序、背光与引脚 |
+| 屏幕 | 用户确认 ST7789、SPI、240×240；照片 TK013F0320 | 排针已确认；初始 SPI/方向/色序参数待实测，BL 电路待模块资料 |
 | 操作 | 按键按住说话，USB 供电 | 独立按键 GPIO 与电平；不得直接沿用参考板 BOOT 接线 |
 
 上游存在 `xiao-esp32s3-respeaker-xvf3800`，它使用 ReSpeaker XVF3800，不能等同于本项目的 INMP441 + MAX98357A。
-本轮使用 `bread-compact-wifi-lcd` 的 240×240 配置做参考编译；其 Flash/PSRAM 和 GPIO 仅属于上游参考板，不能照搬为 XIAO 接线。
+保留 `bread-compact-wifi-lcd` 的 240×240 配置做参考编译；其 Flash/PSRAM 和 GPIO 仅属于上游参考板，不能照搬为 XIAO 接线。
 硬件资料未齐不阻塞源码接入、素材处理、协议研究和主机预览；会阻塞最终引脚定版及实机结论。
 
 ## 3. 分阶段交付
@@ -76,9 +76,9 @@
 - [x] 补丁和自有头文件在隔离生成源构建，原子准备与依赖锁指纹有测试；不修改原上游子模块。
 - [x] 主机验证复用真实状态机、LVGL、GIF 播放器，参考构建与限制见 docs/ROLE_UI_VALIDATION.md。
 
-- [ ] 获取器件资料，编写 docs/HARDWARE.md，填写焊盘与 GPIO 对照、电源、SPI/I²S 分配，核对占用与冲突。
-- [ ] 通过小智板级扩展点接入实际 XIAO 组合；复用现有 LCD、简单 I²S 音频与按键能力。具体修改以可 review 的补丁/叠加文件管理，不能只修改子模块工作树。
-- [ ] 记录并固定真实 Flash/PSRAM、分区和资源配置；只有完成资料核对后才开放目标板 profile。
+- [x] 编写 docs/HARDWARE.md，按官方 Plus 资料分配焊盘/GPIO、SPI 与独立 I²S；屏幕 BL、功放负载/供电仍待资料，未作实机确认。
+- [x] 通过 Kconfig/CMake 板级扩展接入 Plus，复用 LCD、简单 I²S 和 Button；以隔离补丁/叠加文件管理，未修改上游 tracked 源码。
+- [x] 按官方规格固定 16 MB Flash / Octal PSRAM；开放显式测试图或带素材角色 profile。产物仅代表目标板构建通过，实物待验收。
 - [ ] 按顺序验证：测试图 → 角色待机 → 固定音频 → 录音回放 → 按键互动。
 - [ ] 检查麦克风声道、16/32-bit 采样转换、扬声器音量和显示并行工作。复用 SDK 成功合同，正常处理错误，不逐层读回确认。
 
@@ -125,7 +125,13 @@ python3 tools/dev.py --offline assets check
 python3 tools/dev.py preview
 python3 tools/dev.py --offline xiaozhi test
 python3 tools/dev.py --offline --jobs 4 xiaozhi build --profile reference-s3-lcd --pet --assets assets/generated/deepseek/assets.bin
+# 目标板首次点屏，不启动音频或网络：
+python3 tools/dev.py --jobs 4 xiaozhi build --profile xiao-esp32s3-plus-st7789 --display-test
+# 测试图验收后，目标板角色固件（正常小智应用，需要配网/服务）：
+python3 tools/dev.py --offline --jobs 4 xiaozhi build --profile xiao-esp32s3-plus-st7789 --pet --assets assets/generated/deepseek/assets.bin
 ```
+
+接线、下载 CI 测试图固件、烧录和肉眼验收见 docs/HARDWARE.md；测试结果见 docs/XIAO_BOARD_VALIDATION.md。
 
 旧 `build --target esp32s3 --board bringup` 仍是历史最小应用；它不构建小智。
 根 CMake 尚无新路线的自有角色单元测试；unit/c-api-compat 的零测试仍应失败，不能伪称角色验证通过。
@@ -141,4 +147,17 @@ python3 tools/dev.py --offline --jobs 4 xiaozhi build --profile reference-s3-lcd
 - 编译与测试交给独立测试子代理，报告命令、数量、通过/失败/跳过/未运行原因；上游测试和自有工具测试分别说明。
 - 每份 PR 说明基线、依赖、commit 阅读顺序、实际验证、未验证硬件与服务；用户决定 merge。未经新授权不自动 merge 或发布镜像/环境。
 - 使用当前 checkout，除非用户要求不创建额外 worktree。上游修改以可审核文件/补丁管理，保持原作者与许可；不改写已审阅历史。
-- 后续 AI 先核对当前 P2 PR 状态与 docs/ASSETS_VALIDATION.md，再确认角色界面 PR 状态，收集 P3 目标板资料并推进最终 XIAO 板级适配。不要重新实现废弃的 HTTP/WAV 服务或 C11 角色核心。
+- 后续 AI 先核对本轮板级 PR 状态与 docs/XIAO_BOARD_VALIDATION.md，等待测试图实屏验收、确认 BL 和扬声器资料，再推进音频/服务联调。连接中松开按键会被上游忽略，完整 PTT 验收前应修复此已知边界。不要重新实现废弃的 HTTP/WAV 服务或 C11 角色核心。
+
+
+## 6. 本轮板级交接
+
+| 项目 | 本轮交付 / 下一步 |
+| --- | --- |
+| 目标硬件 | 用户确认 Plus + ST7789 240×240；按官方 Plus 资料分配 GPIO，详见 docs/HARDWARE.md |
+| 构建入口 | 目标 profile 显式选择测试图或带素材角色；测试图停止于音频/网络初始化之前 |
+| 固件获取 | CI 仅分发测试图烧录文件；角色素材仍在本地，使用本次构建 flash_args 烧录 |
+| 独立验证 | 命令、数量、最终源码指纹、产物及失败/未运行项见 docs/XIAO_BOARD_VALIDATION.md |
+| 硬件待办 | 确认 BL 电路、实物版本、扬声器/功放资料；用户先验收测试图，暂未实机通过 |
+| 下一实现 | 音频独立验收、连接中松开按键边界修复，然后服务端选择与真实对话 |
+| Review | 本功能按板级实现、行为验证与文档/CI 分组 commit；用户决定 merge，不自动合并 |

@@ -3,7 +3,7 @@
 目标：让蓝发鲸鱼女仆 DeepSeek 娘生活在 ESP32-S3 小屏幕里，通过语音互动和表情反馈陪伴用户。
 
 项目基于 MIT 的 [小智 ESP32](https://github.com/78/xiaozhi-esp32) 二次开发，复用其 C++ 语音、显示、表情和通信能力。上游源码固定在 Git 子模块，开发工具固定在已发布的 Docker 镜像。
-已接入 ESP32-S3 LCD 参考工程、DeepSeek 娘素材转换与 240×240 浏览器预览；XIAO ESP32S3 Plus 的最终接线、板级实机验收尚未完成；当前 PR 进一步接入角色界面和真实状态事件。
+已接入小智参考工程、DeepSeek 娘素材与 240×240 预览、角色界面和真实事件联动。XIAO ESP32S3 Plus / ST7789 已提供目标板构建与独立测试图；实屏、音频和服务联调尚待验收。
 
 ## 开发入口
 
@@ -20,6 +20,14 @@ python3 tools/dev.py --jobs 4 xiaozhi build --profile reference-s3-lcd
 ```
 
 reference-s3-lcd 使用上游参考板配置，不代表 XIAO 接线或可直接烧录固件。旧 build --target esp32s3 --board bringup 仍是历史最小启动应用。
+
+## 首次点亮 ST7789
+
+```sh
+python3 tools/dev.py --jobs 4 xiaozhi build --profile xiao-esp32s3-plus-st7789 --display-test
+```
+
+此模式只显示测试图，不启动音频或网络。GPIO 接线、BL 未确认项、CI 固件下载及本机烧录见 [硬件说明](docs/HARDWARE.md)。测试图实屏通过后再构建同 profile 的 `--pet --assets ...` 版本。
 
 ## 查看角色素材
 
@@ -44,6 +52,8 @@ python3 tools/dev.py preview
 
 ## 文档
 
+- [Plus / ST7789 接线、烧录与实屏检查](docs/HARDWARE.md)
+- [目标板构建验证报告](docs/XIAO_BOARD_VALIDATION.md)
 - [角色常驻界面与真实事件联动](docs/ROLE_UI.md)
 - [角色界面验证报告](docs/ROLE_UI_VALIDATION.md)
 - [240×240 素材、预览与人工检查](docs/ASSETS.md)
