@@ -18,8 +18,8 @@ PR CI 构建候选后，在同一镜像中以 offline 模式跑格式、工具�
 
 标签为 `recipe-<安装输入指纹>`，用于定位发布；开发命令不会消费这个可变标签。
 workflow summary 输出本次真实 registry `@sha256`，artifact `released-container-lock` 提供待审查的锁文件。
-首次 GHCR package 默认可见性与组织策略有关；如果希望匿名拉取，需要所有者在 package 设置中确认公开权限。
-private package 则需要使用 Docker 自身的登录配置，脚本不读取或复制 registry 密钥。
+首次 GHCR package 默认可见性与组织策略有关。当前 PR CI 不执行 registry 登录，因此首次提交发布 digest 锁定前，需要所有者将开发镜像 package 设为 public，以便 CI 匿名拉取。
+private package 可在本地使用 Docker 自身的登录配置，脚本不读取或复制 registry 密钥；私有镜像的 CI 登录不在本轮实现及验证范围。
 
 ## 3. 提交 digest 锁定 PR
 
