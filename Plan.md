@@ -1,7 +1,7 @@
 # DeepChat 实体桌宠实施计划
 
-状态：计划已建立；生产代码、依赖安装、交叉编译、设备烧录和实机验证均未开始。
-本文件是后续 AI 的实施及交接入口。文中的目录、模块和命令，除明确标记已落地的文件外，均为待实现目标。
+状态：P0 构建基线已实现并完成本地验证，待 PR review / merge；P1 及后续功能未开始，设备烧录和实机验证未进行。
+本文件是后续 AI 的实施及交接入口。已实现入口和实际结果见 [构建说明](docs/BUILDING.md) 与 [P0 验证报告](docs/P0_VALIDATION.md)；其余模块和命令仍为待实现目标。
 
 ## 1. 产品目标与第一版范围
 
@@ -205,16 +205,16 @@ P4 将此合同写入 `docs/PROTOCOL.md` 并冻结 fixtures，固件和后端不
 
 前置：本计划、`Rules.md`、`STYLE_GUIDE.md`。
 
-- [ ] 核对官方 ESP-IDF 支持、选定稳定版本，记录 SDK/toolchain/Python/clang-format 的准确版本及来源。
-- [ ] 创建主机 CMake、ESP-IDF 最小应用和 `tools/dev.py`；主机目标不要求下载 SDK。
-- [ ] 用实际调用的最小启动路径验证 ESP32-S3 编译，默认使用不驱动外设的未定板级配置。
-- [ ] 提供 format/check、host test、firmware build 的统一入口；格式只作用于自有选中文件。
-- [ ] `.clang-format` 解析、格式幂等、中文注释保持检查；命名单独 review。
-- [ ] CI 使用与本地相同入口，零测试不能宣称通过；测试尚不存在时明确只做构建检查。
-- [ ] 编写 `docs/BUILDING.md`，记录从干净环境重建的方法。
-- [ ] 明确开源许可证并添加 `LICENSE`；由项目所有者选择许可，不根据仓库公开状态推断许可证。素材许可单独列出。
+- [x] 核对官方 ESP-IDF 支持、选定稳定版本，记录 SDK/toolchain/Python/clang-format 的准确版本及来源。
+- [x] 创建主机 CMake、ESP-IDF 最小应用和 `tools/dev.py`；主机目标不要求下载 SDK。
+- [x] 用实际调用的最小启动路径验证 ESP32-S3 编译，默认使用不驱动外设的未定板级配置。
+- [x] 提供 format/check、host test、firmware build 的统一入口；格式只作用于自有选中文件。
+- [x] `.clang-format` 解析、格式幂等、中文注释保持检查；命名单独 review。
+- [x] CI 使用与本地相同入口，零测试不能宣称通过；测试尚不存在时明确只做构建检查。
+- [x] 编写 `docs/BUILDING.md`，记录从干净环境重建的方法。
+- [x] 明确开源许可证并添加 `LICENSE`；由项目所有者选择许可，不根据仓库公开状态推断许可证。素材许可单独列出。
 
-产物：可复现工具链与构建入口。验收：最小固件交叉编译成功、格式配置实测；不宣称能在未知接线上运行。
+产物：固定工具链、统一入口、CI 及最小启动固件；代码采用 MIT。当前本地验证通过：6 个工具测试、C11/C++17 编译探测及 ESP32-S3 交叉编译。尚无角色业务及公共 API 用例，两个相关套件明确因零测试返回失败；远端 CI 见 PR checks。详见 [验证报告](docs/P0_VALIDATION.md)。
 
 ### P1：角色状态与素材流水线
 
@@ -303,17 +303,21 @@ P4 将此合同写入 `docs/PROTOCOL.md` 并冻结 fixtures，固件和后端不
 
 ## 8. 开发命令合同与测试入口
 
-下列命令是 P0–P6 需要实现的接口，现在尚不可执行。后续 AI 若调整参数，必须同时更新文档和 CI。
+下列命令是 P0–P6 的目标接口。当前已实现 setup、format、test（tools/unit/c-api-compat）及 build；unit/c-api-compat 因尚无用例明确失败。assets、preview、service/protocol 测试、package、flash、provision、monitor 尚未实现。后续调整参数需同步文档和 CI。
 
 ```sh
 python3 tools/dev.py setup
 python3 tools/dev.py format --check
+python3 tools/dev.py test --suite tools
+python3 tools/dev.py build --target host
 python3 tools/dev.py test --suite unit
 python3 tools/dev.py test --suite c-api-compat
 python3 tools/dev.py assets --check
 python3 tools/dev.py preview
 python3 tools/dev.py test --suite service
 python3 tools/dev.py test --suite protocol
+python3 tools/dev.py --jobs 4 build --target esp32s3 --board bringup
+# 以下为 P2/P6 板级定版后的目标接口，目前明确拒绝该 profile：
 python3 tools/dev.py build --target esp32s3 --board xiao-esp32s3-plus
 python3 tools/dev.py package --board xiao-esp32s3-plus
 python3 tools/dev.py flash --port <实际串口> --board xiao-esp32s3-plus
@@ -383,8 +387,8 @@ python3 tools/dev.py monitor --port <实际串口>
 
 | 阶段 | 当前状态 | 验证证据 / 阻塞与下一步 |
 | --- | --- | --- |
-| 计划与规范 | 已落地 | 11 个文本文件及 9 个本地文档链接检查通过；clang-format 未安装，配置解析留待 P0；无固件验证 |
-| P0 构建基线 | 未开始 | 选择、安装并锁定 SDK 与工具，建立实际构建入口 |
+| 计划与规范 | 已 merge（PR #1） | 规范入口已生效；P0 已补齐格式器解析与实际构建验证 |
+| P0 构建基线 | 已实现，待 review / merge | 固定工具、6/6 工具测试、主机标准探测及 ESP32-S3 构建通过；见 docs/P0_VALIDATION.md；CI 结果见 PR checks |
 | P1 角色与素材 | 未开始 | 建立原创占位素材和可运行预览 |
 | P2 屏幕与板级 | 未开始 | 先获取具体屏幕/开发板资料，再确认引脚 |
 | P3 本地音频 | 未开始 | 接 P2 板级映射，实机验证等待器件 |
@@ -393,4 +397,4 @@ python3 tools/dev.py monitor --port <实际串口>
 | P6 烧录交付 | 未开始 | 生成可复现包，真实烧录与体验验收等待硬件 |
 | P7 用量增强 | 后续 | 不阻塞第一版桌宠 |
 
-下一位 AI 的起点：阅读规则后执行 P0；不得将本计划当成已经存在的源码或测试结果。硬件信息未齐时推进 P0、P1、P4 的独立部分，并在相应阶段收集精确型号。
+下一位 AI 的起点：先确认 P0 PR 的审核和合并状态；P0 合并后执行 P1。当前实际结果以验证报告与 PR checks 为准，不将待实现模块当作已有源码。硬件信息未齐时推进 P1、P4 的独立部分，并在相应阶段收集精确型号。

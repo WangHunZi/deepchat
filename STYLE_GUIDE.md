@@ -126,6 +126,6 @@ Python、Shell 和 CI 配置遵循各自语言及项目现有约定，不套用 
 - 语音服务及开发工具使用 Python；模块、函数、参数采用 snake_case，类采用 PascalCase，常量采用 UPPER_SNAKE_CASE。这是服务端的明确语言边界，不把 DC 前缀套到 Python。
 - 自有 C 模块使用 `DCPet`、`DCAudio` 等职责前缀；不继承参考项目的 CoAP、Thread 或 Zephyr 技术依赖。
 - `.clang-format` 沿用参考配置，并补上参考规范要求但原配置遗漏的 `SeparateDefinitionBlocks: Always`；`.clang-tidy` 保留参考检查集，仅用于项目自有编译目标，初期为建议性检查。它尚未配置完整命名正则，命名及 API 契约仍需人工 review。
-- Python 格式工具计划使用 Ruff，120 列、四空格；在后端首次引入时提交配置及锁定版本。CMake、Kconfig、YAML 遵循各自格式。
-- 格式工具的可用版本和配置解析在 P0 实测后锁定；不要为了让旧工具通过而删掉格式规则。
+- Python 格式工具已采用 Ruff 0.11.13，120 列、四空格；配置见 `pyproject.toml`，固定版本见 `tools/requirements-host.txt`。CMake、Kconfig、YAML 遵循各自格式。
+- 格式工具采用 clang-format 18.1.8；配置解析在 P0 实测，版本见 `tools/sdk-lock.json`。不要为了让旧工具通过而删掉格式规则。
 - 运行日志使用本仓库的 [运行日志规范](docs/LOGGING.md)，不复制参考项目的协议状态、聚合计数或重试机制。
