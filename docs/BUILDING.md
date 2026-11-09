@@ -1,5 +1,7 @@
 # 构建与开发入口
 
+当前产品已按用户决定改为基于小智二开，允许 C++；请先看 [小智接入](XIAOZHI.md)。本文中的 `build --target esp32s3 --board bringup` 是历史 P0 最小启动应用，不包含小智或角色图片。
+
 默认使用 Docker 开发镜像。本地、云环境和 CI 共用镜像配方及同一个命令入口；宿主机需要 Docker（含 Buildx）、Git 和 Python 3.10+，不需要安装 SDK、C/C++ 编译器或项目 Python 包。
 当前验证平台为 Linux amd64；Docker Desktop / ARM 模拟运行、串口烧录尚未验证。
 `bringup` 固件只输出启动信息，不代表已经适配 XIAO Plus，角色、音频和最终板级配置仍按 [Plan.md](../Plan.md) 实现。
@@ -20,7 +22,7 @@ python3 tools/dev.py --offline --jobs 4 build --target esp32s3 --board bringup
 日常 format/test/build 直接复用已选镜像，不重新安装工具。重复 setup 由 Docker 复用已拉取的有效层。
 维护者仍可显式 `image build` 构建候选，其本地内容 ID 与 registry digest 是不同标识；候选不自动替换 tracked 发布锁。
 
-`--offline` 适用于已选镜像中的 format/test/build，为容器禁用外部网络，用于证明当前构建链路自包含；它不用于 setup / image build，将来需要在线服务的命令不要加这个参数。
+`--offline` 为容器禁用外部网络。历史基线所需工具都在镜像中；小智业务组件不在工具镜像里，首次 `xiaozhi build` 必须允许网络下载锁定依赖。缓存完整后是否可离线构建以小智验证报告为准；setup / image build 也需要网络。
 `--jobs` 是顶层参数，放在子命令之前，默认 4。格式操作可选文件，例如：
 
 ```sh
@@ -65,9 +67,9 @@ python3 tools/dev.py image build
 
 ## CI
 
-[构建工作流](../.github/workflows/build.yml) 在一个 job 中只准备一次镜像，所有格式、测试及编译通过其不可变内容 ID / digest 运行，并关闭容器网络。
+[构建工作流](../.github/workflows/build.yml) 在一个 job 中只准备一次镜像，所有格式、测试及编译通过其不可变内容 ID / digest 运行。格式、工具测试及历史基线编译禁用网络；小智参考构建使用网络下载其锁定业务组件。
 已固定发布 digest 时 CI 直接拉取；首次 bootstrap 或显式更新镜像配方时构建候选。此时 CI 仍需构建工具镜像，不能声称已省掉首次安装。
-工作流上传镜像选择元数据、日志以及 `build/container/esp32s3-bringup/` 下的 BIN、ELF、map、分区和编译数据库。
+工作流上传镜像选择元数据、日志、业务组件锁、小智参考板 BIN/ELF/map/素材及历史 bringup 产物；参考板产物不能作为 XIAO 可烧录交付。
 当前仍未提供完整的实机烧录发布包；板级确认在 P2，烧录与实机验收在 P6。
 
 当前结果见 [已发布镜像验证](IMAGE_PIN_VALIDATION.md)；历史候选构建见 [Docker 报告](DOCKER_VALIDATION.md)，native 基线见 [P0 报告](P0_VALIDATION.md)。
