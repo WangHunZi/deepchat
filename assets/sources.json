@@ -1,0 +1,75 @@
+{
+  "description": "DeepSeek 娘本地素材来源锁；不授予第三方素材许可。",
+  "packs": {
+    "codex-pet": {
+      "repository": "https://github.com/xpy12367/codex-pet-DeepSeek-girl",
+      "revision": "27843e4ba86cc439d29aa1c6b0591f206fa2514f",
+      "license_status": "未确认可再分发许可；保留上游来源及权利声明，不适用本项目 MIT。",
+      "files": [
+        {
+          "path": "pet.json",
+          "url": "https://raw.githubusercontent.com/xpy12367/codex-pet-DeepSeek-girl/27843e4ba86cc439d29aa1c6b0591f206fa2514f/pet.json",
+          "size_bytes": 244,
+          "sha256": "ee10b6ad47cb5adfc828d36e78a1d2d117a814b84d75d91730ee0f1af3d3b8df"
+        },
+        {
+          "path": "spritesheet.webp",
+          "url": "https://raw.githubusercontent.com/xpy12367/codex-pet-DeepSeek-girl/27843e4ba86cc439d29aa1c6b0591f206fa2514f/spritesheet.webp",
+          "size_bytes": 2698068,
+          "sha256": "8cf848071bd1be761fe3584cfd98bb002e3bad2be32f25249be59feb575d3767"
+        },
+        {
+          "path": "previews/contact-sheet.png",
+          "url": "https://raw.githubusercontent.com/xpy12367/codex-pet-DeepSeek-girl/27843e4ba86cc439d29aa1c6b0591f206fa2514f/previews/contact-sheet.png",
+          "size_bytes": 2846530,
+          "sha256": "58fc2a8de953f51ce4ed4be088986a440494728d56a63fb990e3b6af8c374ecc"
+        },
+        {
+          "path": "README.md",
+          "url": "https://raw.githubusercontent.com/xpy12367/codex-pet-DeepSeek-girl/27843e4ba86cc439d29aa1c6b0591f206fa2514f/README.md",
+          "size_bytes": 3567,
+          "sha256": "f15ea1f7aeff1deb4e51f22b5043d911a05288b477f3bcbd33f263ff18ba2279"
+        }
+      ]
+    },
+    "emotes": {
+      "repository": "https://github.com/BrickAZ/deepseek-chan-emotes",
+      "revision": "0f970d9be7b33c6f7eae0f259062c8e3d40b7b3a",
+      "license_status": "未确认可再分发许可；保留上游来源及权利声明，不适用本项目 MIT。",
+      "files": [
+        {
+          "path": "previews/thinking.gif",
+          "url": "https://raw.githubusercontent.com/BrickAZ/deepseek-chan-emotes/0f970d9be7b33c6f7eae0f259062c8e3d40b7b3a/previews/thinking.gif",
+          "size_bytes": 3195718,
+          "sha256": "d792c9e4016b078f8c054405c83d7d38eff9f4f9cee45930048880b253088e19"
+        },
+        {
+          "path": "previews/thumbs-up.gif",
+          "url": "https://raw.githubusercontent.com/BrickAZ/deepseek-chan-emotes/0f970d9be7b33c6f7eae0f259062c8e3d40b7b3a/previews/thumbs-up.gif",
+          "size_bytes": 3027033,
+          "sha256": "1a281903186a1c0fb49c7b955d163de3ed3a9f238e1b06bfba4d96378e24bd7d"
+        },
+        {
+          "path": "previews/gaming.gif",
+          "url": "https://raw.githubusercontent.com/BrickAZ/deepseek-chan-emotes/0f970d9be7b33c6f7eae0f259062c8e3d40b7b3a/previews/gaming.gif",
+          "size_bytes": 2399010,
+          "sha256": "4bc4ff22e2c7151be9a8e9194a51177cfd953d939379fa333020d82653edf4b9"
+        },
+        {
+          "path": "README.md",
+          "url": "https://raw.githubusercontent.com/BrickAZ/deepseek-chan-emotes/0f970d9be7b33c6f7eae0f259062c8e3d40b7b3a/README.md",
+          "size_bytes": 5517,
+          "sha256": "94b3657ee768256e4f32baf75d450d6dc293ab77f75f7f61459519b8691f4d03"
+        }
+      ],
+      "credits": {
+        "character": "蓝色大肥鱼",
+        "creator": "飞天豆之助",
+        "workshop": "https://steamcommunity.com/sharedfiles/filedetails/?id=3807575879",
+        "tool": "https://emotelab.app/",
+        "terms": "https://emotelab.app/eula/",
+        "full_pack_releases": "https://github.com/BrickAZ/deepseek-chan-emotes/releases"
+      }
+    }
+  }
+}
