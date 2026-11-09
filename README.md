@@ -3,7 +3,7 @@
 目标：让蓝发鲸鱼女仆 DeepSeek 娘生活在 ESP32-S3 小屏幕里，通过语音互动和表情反馈陪伴用户。
 
 项目基于 MIT 的 [小智 ESP32](https://github.com/78/xiaozhi-esp32) 二次开发，复用其 C++ 语音、显示、表情和通信能力。上游源码固定在 Git 子模块，开发工具固定在已发布的 Docker 镜像。
-已接入 ESP32-S3 LCD 参考工程、DeepSeek 娘素材转换与 240×240 浏览器预览；XIAO ESP32S3 Plus 的最终接线、角色界面集成与实机验收尚未完成。
+已接入 ESP32-S3 LCD 参考工程、DeepSeek 娘素材转换与 240×240 浏览器预览；XIAO ESP32S3 Plus 的最终接线、板级实机验收尚未完成；当前 PR 进一步接入角色界面和真实状态事件。
 
 ## 开发入口
 
@@ -40,8 +40,12 @@ python3 tools/dev.py preview
 
 在运行命令的电脑上打开 http://127.0.0.1:8765/，支持六动作切换、暂停、逐帧及 1×/2×。说话暂用待机占位，没有嘴型同步。也可取得生成的 assets/generated/deepseek/index.html 在允许 file:// 的浏览器打开。完整步骤和验收边界见 [240×240 素材说明](docs/ASSETS.md)。
 
+角色常驻与真实状态联动版本使用 `xiaozhi build --profile reference-s3-lcd --pet --assets assets/generated/deepseek/assets.bin`；加 `--offline` 的完整命令和主机行为检查见 [角色界面说明](docs/ROLE_UI.md)。
+
 ## 文档
 
+- [角色常驻界面与真实事件联动](docs/ROLE_UI.md)
+- [角色界面验证报告](docs/ROLE_UI_VALIDATION.md)
 - [240×240 素材、预览与人工检查](docs/ASSETS.md)
 - [素材与浏览器验证结果](docs/ASSETS_VALIDATION.md)
 - [小智接入、构建与看效果的方法](docs/XIAOZHI.md)

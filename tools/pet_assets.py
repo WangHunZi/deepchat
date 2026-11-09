@@ -8,6 +8,7 @@ import unittest
 from pathlib import Path
 
 import native
+
 import xiaozhi
 
 OUTPUT = native.REPO / "assets/generated/deepseek"

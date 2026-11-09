@@ -97,3 +97,5 @@ python3 tools/dev.py --offline --jobs 4 xiaozhi build --profile reference-s3-lcd
 
 CI 使用原创几何图形 fixtures 验证转换、打包、预算、输入错误、绿边回归及原设备解码器一致性，无需下载第三方角色或上传角色图像 artifact。
 完整实际结果见 ASSETS_VALIDATION.md。素材来源与许可见 assets/README.md；代码 MIT 不替代角色素材许可。
+
+当前角色界面功能已在隔离补丁版本接入真实事件；使用 --pet 构建，详见 [ROLE_UI.md](ROLE_UI.md)。本文件的普通 --assets 构建仍保持上游默认界面，不应混淆两者。

@@ -49,6 +49,10 @@ jobs:
         run: python3 tools/dev.py --offline xiaozhi check
       - name: Build Xiaozhi ESP32-S3 LCD reference with locked dependencies
         run: python3 tools/dev.py --jobs 4 xiaozhi build --profile reference-s3-lcd 2>&1 | tee artifacts/xiaozhi.log
+      - name: Verify role behavior with the real upstream FSM, LVGL and GIF player offline
+        run: python3 tools/dev.py --offline xiaozhi test 2>&1 | tee artifacts/role-tests.log
+      - name: Compile isolated role UI using reference resources offline
+        run: python3 tools/dev.py --offline --jobs 4 xiaozhi build --profile reference-s3-lcd --pet --assets build/container/xiaozhi-reference-s3-lcd/generated_assets.bin 2>&1 | tee artifacts/role-build.log
       - name: Build ESP32-S3 without assumed board peripherals offline
         run: python3 tools/dev.py --offline --jobs 4 build --target esp32s3 --board bringup 2>&1 | tee artifacts/firmware.log
       - name: Retain build and image evidence
@@ -62,6 +66,7 @@ jobs:
             tools/*lock.json
             tools/requirements-*.txt
             config/xiaozhi/*
+            build/container/pet-tests/Testing/Temporary/LastTest.log
             build/container/xiaozhi-reference-s3-lcd/xiaozhi.bin
             build/container/xiaozhi-reference-s3-lcd/xiaozhi.elf
             build/container/xiaozhi-reference-s3-lcd/xiaozhi.map
