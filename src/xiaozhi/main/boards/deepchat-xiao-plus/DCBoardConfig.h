@@ -12,8 +12,8 @@ inline constexpr gpio_num_t kDCLcdMosi   = GPIO_NUM_9;   // D10
 inline constexpr gpio_num_t kDCPttButton = GPIO_NUM_8;   // D9，外接常开按键到 GND
 inline constexpr gpio_num_t kDCMicWs     = GPIO_NUM_5;   // D4
 inline constexpr gpio_num_t kDCMicClock  = GPIO_NUM_6;   // D5
-inline constexpr gpio_num_t kDCMicData   = GPIO_NUM_43;  // D6
-inline constexpr gpio_num_t kDCSpkData   = GPIO_NUM_44;  // D7
+inline constexpr gpio_num_t kDCMicData   = GPIO_NUM_44;  // D7，UART RX，避免 ROM TX 连接麦克风输出
+inline constexpr gpio_num_t kDCSpkData   = GPIO_NUM_43;  // D6，UART ROM TX 连接功放输入
 inline constexpr gpio_num_t kDCSpkClock  = GPIO_NUM_39;  // D12，背面焊盘
 inline constexpr gpio_num_t kDCSpkWs     = GPIO_NUM_40;  // D13，背面焊盘
 

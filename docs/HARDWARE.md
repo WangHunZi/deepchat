@@ -10,6 +10,7 @@
 - [Plus 正面引脚图](https://files.seeedstudio.com/wiki/SeeedStudio-XIAO-ESP32S3/img/XIAO_ESP32-S3_Plus_front_pinout.png)、[背面引脚图](https://files.seeedstudio.com/wiki/SeeedStudio-XIAO-ESP32S3/img/XIAO_ESP32-S3_Plus_back_pinout.png)。
 - [Plus V1.1 官方原理图](https://files.seeedstudio.com/wiki/SeeedStudio-XIAO-ESP32S3/res/XIAO_ESP32S3_Plus_V1.1_SCH_260115.pdf)，图签日期 2026-01-15；核对模块及排针映射，实物版本仍需匹配。
 - 当前使用 QIO Flash、80 MHz Octal PSRAM、原生 USB Serial/JTAG 控制台。GPIO43/44 已分配给音频，不能再接 UART 转串口。
+- [ESP32-S3 Datasheet](https://www.espressif.com/sites/default/files/documentation/esp32-s3_datasheet_en.pdf) §3.3 说明 ROM 默认向 UART0 与 USB 输出启动日志；[锁定 SDK 引脚表](https://github.com/espressif/esp-idf/blob/fff9895c82d744c7237be8847347bdd1b07c6643/components/soc/esp32s3/include/soc/uart_pins.h#L10-L11) 定义 GPIO43 为 UART TX、44 为 RX。USB 控制台切换在二级 bootloader 生效，因此麦克风 SD 选 GPIO44，功放 DIN 选 GPIO43，避免把 ROM 输出连接到麦克风输出。此为启动方向核对，并非实测争用结论。
 - 屏幕照片可以确认接口文字，不能确认 BL 内部限流、驱动晶体管或有效电平。**BL 暂不接 MCU GPIO，也不把 BL 直接短接 3V3 作为通用接法。** 首次点亮前，按卖家的本型号原理图确认 BL 是逻辑输入还是 LED 电源，并按其限流/驱动要求接线；后续确认后再补 PWM。
 
 ## 先只接屏幕
@@ -91,9 +92,9 @@ python3 tools/dev.py --offline --jobs 4 xiaozhi build --profile xiao-esp32s3-plu
 | --- | --- | --- | --- |
 | INMP441 SCK | D5 | 6 | 输入 I²S，16 kHz |
 | INMP441 WS | D4 | 5 | 独立录音时钟 |
-| INMP441 SD | D6 | 43 | 输入；L/R 接 GND 选择左声道 |
+| INMP441 SD | D7 | 44 | 输入；L/R 接 GND 选择左声道 |
 | INMP441 VDD / GND | 3V3 / GND | — | 3.3 V；按实际模块去耦 |
-| MAX98357A DIN | D7 | 44 | 输出 I²S，24 kHz，左声道 |
+| MAX98357A DIN | D6 | 43 | 输出 I²S，24 kHz，左声道 |
 | MAX98357A BCLK | D12（背面焊盘） | 39 | 与麦克风分离的输出时钟 |
 | MAX98357A LRC | D13（背面焊盘） | 40 | 需要焊接背面焊盘，不与 D12 对调 |
 | 外接常开按键 | D9 ↔ GND | 8 | 内部上拉，按下调用 StartListening，松开调用 StopListening |
