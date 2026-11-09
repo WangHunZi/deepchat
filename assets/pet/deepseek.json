@@ -1,0 +1,131 @@
+{
+  "name": "DeepSeek 娘",
+  "source_pack": "codex-pet",
+  "canvas": [
+    240,
+    240
+  ],
+  "content_box": [
+    216,
+    216
+  ],
+  "background": "#edf3fb",
+  "fps_cap": 10,
+  "budget_bytes": 8388608,
+  "clips": {
+    "idle": {
+      "file": "previews/idle.gif",
+      "loop": true,
+      "sprite_row": 0,
+      "sprite_columns": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "listen": {
+      "file": "previews/waiting.gif",
+      "loop": true,
+      "sprite_row": 6,
+      "sprite_columns": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "think": {
+      "file": "previews/running.gif",
+      "loop": true,
+      "sprite_row": 7,
+      "sprite_columns": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "happy": {
+      "file": "previews/waving.gif",
+      "loop": false,
+      "sprite_row": 3,
+      "sprite_columns": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    "confused": {
+      "file": "previews/failed.gif",
+      "loop": false,
+      "sprite_row": 5,
+      "sprite_columns": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    }
+  },
+  "actions": [
+    {
+      "id": "idle",
+      "label": "待机",
+      "clip": "idle",
+      "emotion": "neutral",
+      "note": "呼吸、眨眼与鲸尾小动作"
+    },
+    {
+      "id": "listen",
+      "label": "倾听",
+      "clip": "listen",
+      "emotion": "listening",
+      "note": "复用 waiting，尚非专门制作的倾听动作"
+    },
+    {
+      "id": "think",
+      "label": "思考",
+      "clip": "think",
+      "emotion": "thinking",
+      "note": "复用 running 工作状态，托腮思考"
+    },
+    {
+      "id": "speak",
+      "label": "说话",
+      "clip": "idle",
+      "emotion": "speaking",
+      "note": "暂用待机动作占位；没有嘴型或声音同步"
+    },
+    {
+      "id": "happy",
+      "label": "开心",
+      "clip": "happy",
+      "emotion": "happy",
+      "note": "单次挥手，播完停在最后一帧"
+    },
+    {
+      "id": "confused",
+      "label": "困惑",
+      "clip": "confused",
+      "emotion": "confused",
+      "note": "复用 failed；单次播放，需人工确认情绪是否合适"
+    }
+  ],
+  "sprite_file": "spritesheet.webp",
+  "sprite_grid": [
+    8,
+    11
+  ]
+}

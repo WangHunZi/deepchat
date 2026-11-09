@@ -21,7 +21,15 @@ class DevelopmentEntryTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / "tools").mkdir()
-            for name in ("dev.py", "native.py", "container.py", "xiaozhi.py", "xiaozhi-lock.json", "sdk-lock.json"):
+            for name in (
+                "dev.py",
+                "native.py",
+                "container.py",
+                "xiaozhi.py",
+                "xiaozhi-lock.json",
+                "pet_assets.py",
+                "sdk-lock.json",
+            ):
                 (root / "tools" / name).write_bytes((ROOT / "tools" / name).read_bytes())
             binaries = root / ".venv/bin"
             binaries.mkdir(parents=True)

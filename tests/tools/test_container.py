@@ -114,7 +114,15 @@ class ContainerBoundaryTest(unittest.TestCase):
 
     def test_captured_git_error_remains_visible_with_its_exit_status(self):
         tools = self.root / "tools"
-        for name in ("dev.py", "native.py", "container.py", "xiaozhi.py", "xiaozhi-lock.json", "sdk-lock.json"):
+        for name in (
+            "dev.py",
+            "native.py",
+            "container.py",
+            "xiaozhi.py",
+            "xiaozhi-lock.json",
+            "pet_assets.py",
+            "sdk-lock.json",
+        ):
             (tools / name).write_bytes((ROOT / "tools" / name).read_bytes())
         binaries = self.root / ".venv/bin"
         binaries.mkdir(parents=True)
@@ -144,7 +152,15 @@ class ContainerBoundaryTest(unittest.TestCase):
 
     def test_docker_failure_is_preserved_by_the_public_cli(self):
         tools = self.root / "tools"
-        for name in ("dev.py", "native.py", "container.py", "xiaozhi.py", "xiaozhi-lock.json", "sdk-lock.json"):
+        for name in (
+            "dev.py",
+            "native.py",
+            "container.py",
+            "xiaozhi.py",
+            "xiaozhi-lock.json",
+            "pet_assets.py",
+            "sdk-lock.json",
+        ):
             (tools / name).write_bytes((ROOT / "tools" / name).read_bytes())
         container.save_pin(IMAGE_ID, container.recipe())
         binaries = self.root / "bin"
