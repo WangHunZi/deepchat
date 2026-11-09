@@ -37,6 +37,8 @@ def prepare_dependencies():
 
 
 def build_reference(args):
+    if args.pet and not args.assets:
+        raise ValueError("--pet requires --assets with a generated role resource pack")
     check_source()
     prepare_dependencies()
     environment = native.firmware_environment()
@@ -44,9 +46,15 @@ def build_reference(args):
     output = native.BUILD_ROOT / "xiaozhi-reference-s3-lcd"
     if args.assets:
         output = native.BUILD_ROOT / "xiaozhi-reference-s3-lcd-custom"
+    source_tree = SOURCE
+    if args.pet:
+        import xiaozhi_overlay
+
+        source_tree = xiaozhi_overlay.prepare(SOURCE, LOCK["revision"])
+        output = source_tree.parent / "build"
     defaults = [
-        SOURCE / "sdkconfig.defaults",
-        SOURCE / "sdkconfig.defaults.esp32s3",
+        source_tree / "sdkconfig.defaults",
+        source_tree / "sdkconfig.defaults.esp32s3",
         ROOT / "config/xiaozhi/reference-s3-lcd.defaults",
     ]
     if args.assets:
@@ -66,7 +74,7 @@ def build_reference(args):
             native.python_path(),
             native.SDK / "tools/idf.py",
             "-C",
-            SOURCE,
+            source_tree,
             "-B",
             output,
             "-D",
@@ -85,7 +93,35 @@ def register(commands):
     operations = parser.add_subparsers(dest="xiaozhi_action", required=True)
     check = operations.add_parser("check", help="Verify the locked submodule and preserve local edits")
     check.set_defaults(action=lambda args: check_source())
+    tests = operations.add_parser("test", help="Run real upstream FSM/LVGL/GIF host tests for the role UI")
+    tests.set_defaults(action=test_pet)
     build = operations.add_parser("build", help="Build the upstream ESP32-S3 LCD reference, not the final XIAO board")
     build.add_argument("--profile", choices=[LOCK["reference_profile"]], required=True)
     build.add_argument("--assets", help="Optional local custom assets.bin; uses a separate reference build directory")
+    build.add_argument("--pet", action="store_true", help="Build the isolated role UI patch; requires --assets")
     build.set_defaults(action=build_reference)
+
+
+def test_pet(args):
+    check_source()
+    if not (SOURCE / "managed_components/lvgl__lvgl/CMakeLists.txt").is_file():
+        raise ValueError("Build the reference once to cache the locked LVGL dependency before running role UI tests")
+    output = native.BUILD_ROOT / "pet-tests"
+    environment = native.host_environment()
+    native.run(
+        [
+            "cmake",
+            "-S",
+            ROOT / "tests/pet",
+            "-B",
+            output,
+            "-G",
+            "Ninja",
+            "-DCMAKE_BUILD_TYPE=Debug",
+            "-DUPSTREAM_ROOT=" + str(SOURCE),
+            "-DOVERLAY_ROOT=" + str(ROOT / "src/xiaozhi"),
+        ],
+        env=environment,
+    )
+    native.run(["cmake", "--build", output, "--parallel", args.jobs], env=environment)
+    native.run(["ctest", "--test-dir", output, "--output-on-failure", "--no-tests=error"], env=environment)

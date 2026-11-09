@@ -1,0 +1,368 @@
+--- a/main/application.h
++++ b/main/application.h
+@@ -18,6 +18,7 @@
+ #include "ota.h"
+ #include "audio_service.h"
+ #include "device_state.h"
++#include "DCPetPresentation.h"
+ #include "device_state_machine.h"
+ #include "notify/notify_player.h"
+ 
+@@ -137,6 +138,7 @@
+     esp_timer_handle_t clock_timer_handle_ = nullptr;
+     esp_timer_handle_t startup_wake_word_hint_timer_ = nullptr;
+     DeviceStateMachine state_machine_;
++    DCPetPresentation pet_;
+     ListeningMode listening_mode_ = kListeningModeAutoStop;
+     AecMode aec_mode_ = kAecOff;
+     std::string last_error_message_;
+@@ -161,6 +163,8 @@
+ 
+     // Event handlers
+     void HandleStateChangedEvent();
++    void FinishTtsPlayback();
++    void CancelPetPresentation();
+     void HandleToggleChatEvent();
+     void HandleStartListeningEvent();
+     void HandleStopListeningEvent();
+--- a/main/application.cc
++++ b/main/application.cc
+@@ -198,6 +198,7 @@
+         auto bits = xEventGroupWaitBits(event_group_, ALL_EVENTS, pdTRUE, pdFALSE, portMAX_DELAY);
+ 
+         if (bits & MAIN_EVENT_ERROR) {
++            pet_.Cancel();
+             if (GetDeviceState() == kDeviceStateNotifying) {
+                 StopNotification();
+             }
+@@ -223,13 +224,17 @@
+         }
+ 
+         if (bits & MAIN_EVENT_PLAYBACK_DRAINED) {
+-            if (audio_service_.IsPlaybackIdle()) {
++            const bool drained = audio_service_.IsPlaybackIdle();
++            if (GetDeviceState() == kDeviceStateSpeaking && pet_.OnPlaybackDrained(drained)) {
++                FinishTtsPlayback();
++            }
++            if (drained) {
+                 notify_player_.OnPlaybackDrained();
+             }
+             // Deferred listening start (auto mode): the playback queue has
+             // drained, so it is now safe to enable voice processing.
+             if (pending_listening_start_ && GetDeviceState() == kDeviceStateListening &&
+-                audio_service_.IsPlaybackIdle()) {
++                drained) {
+                 pending_listening_start_ = false;
+                 StartListeningAudio();
+             }
+@@ -328,6 +333,7 @@
+ }
+ 
+ void Application::HandleNetworkDisconnectedEvent() {
++    CancelPetPresentation();
+     // Close current conversation when network disconnected
+     auto state = GetDeviceState();
+     if (state == kDeviceStateNotifying) {
+@@ -595,6 +601,7 @@
+     protocol_->OnAudioChannelClosed([this, &board]() {
+         board.SetPowerSaveLevel(PowerSaveLevel::LOW_POWER);
+         Schedule([this]() {
++            CancelPetPresentation();
+             auto display = Board::GetInstance().GetDisplay();
+             display->SetChatMessage("system", "");
+             SetDeviceState(kDeviceStateIdle);
+@@ -649,16 +656,15 @@
+             if (strcmp(state->valuestring, "start") == 0) {
+                 Schedule([this]() {
+                     aborted_ = false;
++                    pet_.OnPlaybackStarted();
+                     SetDeviceState(kDeviceStateSpeaking);
+                 });
+             } else if (strcmp(state->valuestring, "stop") == 0) {
+                 Schedule([this]() {
+-                    if (GetDeviceState() == kDeviceStateSpeaking) {
+-                        if (listening_mode_ == kListeningModeManualStop) {
+-                            SetDeviceState(kDeviceStateIdle);
+-                        } else {
+-                            SetDeviceState(kDeviceStateListening);
+-                        }
++                    // 服务端停止发送不等于本地播放已结束；继续等待现有排空事件。
++                    if (GetDeviceState() == kDeviceStateSpeaking &&
++                        pet_.OnPlaybackStopped(audio_service_.IsPlaybackIdle())) {
++                        FinishTtsPlayback();
+                     }
+                 });
+             } else if (strcmp(state->valuestring, "sentence_start") == 0) {
+@@ -695,8 +701,13 @@
+         } else if (strcmp(type->valuestring, "llm") == 0) {
+             auto emotion = cJSON_GetObjectItem(root, "emotion");
+             if (cJSON_IsString(emotion)) {
+-                Schedule([display, emotion_str = std::string(emotion->valuestring)]() {
+-                    display->SetEmotion(emotion_str.c_str());
++                Schedule([this, emotion_str = std::string(emotion->valuestring)]() {
++                    if (!pet_.SetFeedback(emotion_str.c_str())) {
++                        ESP_LOGW(TAG, "[Pet::Emotion]: unsupported feedback %s", emotion_str.c_str());
++                    } else if (GetDeviceState() == kDeviceStateIdle && last_error_message_.empty()) {
++                        // 等待回复的 Idle 仍显示 thinking；结束后迟到的情绪立即反馈。
++                        Board::GetInstance().GetDisplay()->SetEmotion(pet_.OnState(kDeviceStateIdle));
++                    }
+                 });
+             }
+         } else if (strcmp(type->valuestring, "mcp") == 0) {
+@@ -778,8 +789,11 @@
+                         const std::string_view& sound) {
+     ESP_LOGW(TAG, "Alert [%s] %s: %s", emotion, status, message);
+     auto display = Board::GetInstance().GetDisplay();
++    const bool conversation_error = GetDeviceState() == kDeviceStateIdle &&
++        (strcmp(emotion, "cancel") == 0 || strcmp(emotion, "cloud_off") == 0);
++    display->SetPetMode(conversation_error);
+     display->SetStatus(status);
+-    display->SetEmotion(emotion);
++    display->SetEmotion(conversation_error ? "confused" : emotion);
+     display->SetChatMessage("system", message);
+     if (!sound.empty()) {
+         audio_service_.PlaySound(sound);
+@@ -790,6 +804,7 @@
+     last_error_message_.clear();
+     if (GetDeviceState() == kDeviceStateIdle) {
+         auto display = Board::GetInstance().GetDisplay();
++        display->SetPetMode(true);
+         display->SetStatus(Lang::Strings::STANDBY);
+         display->SetEmotion("neutral");
+         display->SetChatMessage("system", "");
+@@ -915,6 +930,7 @@
+         if (protocol_) {
+             protocol_->SendStopListening();
+         }
++        pet_.OnRecordingStopped();
+         SetDeviceState(kDeviceStateIdle);
+     }
+ }
+@@ -1028,6 +1044,8 @@
+     auto display = board.GetDisplay();
+     auto led = board.GetLed();
+     led->OnStateChanged();
++    const char* emotion = pet_.OnState(new_state);
++    display->SetPetMode(emotion != nullptr);
+ 
+     switch (new_state) {
+         case kDeviceStateUnknown:
+@@ -1038,20 +1056,19 @@
+             if (last_error_message_.empty()) {
+                 display->SetStatus(Lang::Strings::STANDBY);
+                 display->ClearChatMessages();  // Clear messages first
+-                display->SetEmotion(
+-                    "neutral");  // Then set emotion (wechat mode checks child count)
++                display->SetEmotion(emotion != nullptr ? emotion : "neutral");
+             }
+             audio_service_.EnableVoiceProcessing(false);
+             audio_service_.EnableWakeWordDetection(true);
+             break;
+         case kDeviceStateConnecting:
+             display->SetStatus(Lang::Strings::CONNECTING);
+-            display->SetEmotion("neutral");
++            display->SetEmotion(emotion);
+             display->SetChatMessage("system", "");
+             break;
+         case kDeviceStateListening:
+             display->SetStatus(Lang::Strings::LISTENING);
+-            display->SetEmotion("neutral");
++            display->SetEmotion(emotion);
+ 
+             // Make sure the audio processor is running
+             if (play_popup_on_listening_ || !audio_service_.IsAudioProcessorRunning()) {
+@@ -1070,6 +1087,7 @@
+             break;
+         case kDeviceStateSpeaking:
+             display->SetStatus(Lang::Strings::SPEAKING);
++            display->SetEmotion(emotion);
+ 
+             if (listening_mode_ != kListeningModeRealtime) {
+                 audio_service_.EnableVoiceProcessing(false);
+@@ -1080,6 +1098,7 @@
+             break;
+         case kDeviceStateNotifying:
+             display->SetStatus(Lang::Strings::SPEAKING);
++            display->SetEmotion(emotion);
+             audio_service_.EnableVoiceProcessing(false);
+             audio_service_.EnableWakeWordDetection(audio_service_.IsAfeWakeWord());
+             break;
+@@ -1090,6 +1109,25 @@
+         default:
+             // Do nothing
+             break;
++    }
++}
++
++void Application::FinishTtsPlayback() {
++    // 只由主任务在收到 stop 且 AudioService 排空后调用，保持上游手动/自动模式语义。
++    if (listening_mode_ == kListeningModeManualStop) {
++        SetDeviceState(kDeviceStateIdle);
++    } else {
++        SetDeviceState(kDeviceStateListening);
++    }
++}
++
++void Application::CancelPetPresentation() {
++    // Idle -> Idle 不产生状态变更事件；等待回复时断连/重置要在此主动恢复画面。
++    const char* emotion = pet_.Cancel(GetDeviceState());
++    if (emotion != nullptr && last_error_message_.empty()) {
++        auto display = Board::GetInstance().GetDisplay();
++        display->SetPetMode(true);
++        display->SetEmotion(emotion);
+     }
+ }
+ 
+@@ -1266,6 +1304,7 @@
+ }
+ 
+ void Application::AbortSpeaking(AbortReason reason) {
++    pet_.Cancel();
+     ESP_LOGI(TAG, "Abort speaking");
+     aborted_ = true;
+     if (protocol_) {
+@@ -1454,6 +1493,7 @@
+ 
+ void Application::ResetProtocol() {
+     Schedule([this]() {
++        CancelPetPresentation();
+         if (GetDeviceState() == kDeviceStateNotifying) {
+             StopNotification();
+         }
+--- a/main/display/display.h
++++ b/main/display/display.h
+@@ -63,6 +63,8 @@
+     virtual bool IsMonochrome() const { return false; }
+     virtual bool SupportsGuiOperations() const { return false; }
+     virtual void SetHideSubtitle(bool hide) { (void)hide; }
++    // LCD角色界面专用；其他显示保留原行为。由Application主任务调用。
++    virtual void SetPetMode(bool enabled) { (void)enabled; }
+     virtual bool InsertAnimDialog(const char* name, uint32_t duration_ms) {
+         (void)name;
+         (void)duration_ms;
+--- a/main/display/lcd_display.h
++++ b/main/display/lcd_display.h
+@@ -31,6 +31,9 @@
+     lv_obj_t* chat_message_label_ = nullptr;
+     esp_timer_handle_t preview_timer_ = nullptr;
+     std::unique_ptr<LvglImage> preview_image_cached_ = nullptr;
++    bool pet_mode_ = false;
++    bool pet_feedback_active_ = false;
++    bool SetEmotionLocked(const char* emotion);
+     bool hide_subtitle_ = false;  // Control whether to hide chat messages/subtitles
+ 
+     void InitializeLcdThemes();
+@@ -45,6 +48,8 @@
+ public:
+     ~LcdDisplay();
+     virtual bool SetEmotion(const char* emotion) override;
++    virtual void SetPetMode(bool enabled) override;
++    virtual void UpdateStatusBar(bool update_all = false) override;
+     virtual void SetChatMessage(const char* role, const char* content) override;
+     virtual void RemoveChatMessage(const char* role, const char* content) override;
+     virtual void ClearChatMessages() override;
+--- a/main/display/lcd_display.cc
++++ b/main/display/lcd_display.cc
+@@ -1,4 +1,8 @@
+ #include "lcd_display.h"
++#include "DCPetLayout.h"
++#if !CONFIG_USE_DEFAULT_MESSAGE_STYLE
++#error DeepChat role UI requires the default LCD layout
++#endif
+ #include "assets/lang_config.h"
+ #include "gif/lvgl_gif.h"
+ #include "lvgl_theme.h"
+@@ -1136,7 +1140,7 @@
+     if (bottom_bar_ != nullptr) {
+         if (content == nullptr || content[0] == '\0') {
+             lv_obj_add_flag(bottom_bar_, LV_OBJ_FLAG_HIDDEN);
+-        } else if (!hide_subtitle_) {
++        } else if (!hide_subtitle_ && !pet_mode_) {
+             lv_obj_remove_flag(bottom_bar_, LV_OBJ_FLAG_HIDDEN);
+         }
+     }
+@@ -1176,6 +1180,12 @@
+ #endif
+ 
+ bool LcdDisplay::SetEmotion(const char* emotion) {
++    DisplayLockGuard lock(this);
++    if (!lock) return false;
++    return SetEmotionLocked(emotion);
++}
++
++bool LcdDisplay::SetEmotionLocked(const char* emotion) {
+     if (!setup_ui_called_) {
+         ESP_LOGW(TAG, "SetEmotion('%s') called before SetupUI() - emotion will not be displayed!",
+                  emotion);
+@@ -1192,6 +1202,10 @@
+ 
+     auto emoji_collection = static_cast<LvglTheme*>(current_theme_)->emoji_collection();
+     auto image = emoji_collection != nullptr ? emoji_collection->GetEmojiImage(emotion) : nullptr;
++    if (pet_mode_ && image == nullptr) {
++        ESP_LOGW(TAG, "[Pet::Display]: missing emotion %s", emotion);
++        return false;
++    }
+     if (image == nullptr) {
+         auto lvgl_theme = static_cast<LvglTheme*>(current_theme_);
+         const char* utf8 = noto_emoji_get_utf8(emotion);
+@@ -1204,7 +1218,6 @@
+             // No image and no glyph for this name: nothing was shown for the request.
+             return false;
+         }
+-        DisplayLockGuard lock(this);
+         if (gif_controller_) {
+             gif_controller_->Stop();
+             gif_controller_.reset();
+@@ -1218,7 +1231,6 @@
+         return true;
+     }
+ 
+-    DisplayLockGuard lock(this);
+     // Stop any running GIF animation in the same lock scope as setting new image
+     // to prevent LVGL from accessing freed image data between operations
+     if (gif_controller_) {
+@@ -1272,6 +1284,9 @@
+ #endif
+     // The WeChat style deliberately hides a neutral emotion. That is a choice about
+     // presentation, not a failure to honour the request, so `shown` stands as it was.
++    if (shown) {
++        pet_feedback_active_ = strcmp(emotion, "happy") == 0 || strcmp(emotion, "confused") == 0;
++    }
+     return shown;
+ }
+ 
+@@ -1425,7 +1440,7 @@
+ 
+     // Immediately update UI visibility based on the setting
+     if (bottom_bar_ != nullptr) {
+-        if (hide) {
++        if (hide || pet_mode_) {
+             lv_obj_add_flag(bottom_bar_, LV_OBJ_FLAG_HIDDEN);
+         } else {
+             // Only show if there is actual content to display
+@@ -1437,3 +1452,25 @@
+         }
+     }
+ }
++
++
++void LcdDisplay::SetPetMode(bool enabled) {
++    if (!setup_ui_called_) return;
++    DisplayLockGuard lock(this);
++    if (!lock) return;
++    pet_mode_ = enabled;
++    if (!enabled) pet_feedback_active_ = false;
++    const char* text = chat_message_label_ != nullptr ? lv_label_get_text(chat_message_label_) : nullptr;
++    DCPetApplyLayout(top_bar_, status_bar_, bottom_bar_, enabled, hide_subtitle_, text != nullptr && text[0] != '\0');
++}
++
++void LcdDisplay::UpdateStatusBar(bool update_all) {
++    LvglDisplay::UpdateStatusBar(update_all);
++    DisplayLockGuard lock(this);
++    if (!lock) return;
++    // 沿用主任务每秒状态栏刷新；不在GIF计时回调内释放正在执行的播放器。
++    // 同一显示锁内检查并恢复，新的动作不会被过期的完成回调覆盖。
++    if (pet_mode_ && pet_feedback_active_ && gif_controller_ && !gif_controller_->IsPlaying()) {
++        SetEmotionLocked("neutral");
++    }
++}
