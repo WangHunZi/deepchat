@@ -18,4 +18,4 @@
 
 角色构建通过 --pet 显式选择，在 build 下准备隔离的上游补丁副本；自有叠加头文件位于 src/xiaozhi，禁止直接改子模块后声称已交付补丁。主机入口 xiaozhi test 复用真实 FSM/LVGL/GIF，不能替代 FreeRTOS/音频/网络或实机验收。
 
-XIAO Plus / ST7789 240×240 已有独立 --display-test 与 --pet 两种目标板构建，接线/烧录见 docs/HARDWARE.md，独立验证见 docs/XIAO_BOARD_VALIDATION.md。测试图 CI artifact 不含角色素材。屏幕 BL 电路、音频功放负载、实机仍未确认；上游 Connecting 中松开 PTT 的边界已记录，后续音频交互阶段需修复并验收。不要将参考板或交叉编译当作实机通过。
+XIAO Plus / ST7789 240×240 已有独立 --display-test 与 --pet 两种目标板构建，接线/烧录见 docs/HARDWARE.md，独立验证见 docs/XIAO_BOARD_VALIDATION.md。测试图 CI artifact 不含角色素材。屏幕 BL 电路、音频功放负载、实机仍未确认；手动 PTT 软件边界修复见 docs/PTT.md 和 docs/PTT_VALIDATION.md；xiaozhi test 使用真实 Application 主循环验证软件时序，完整交互仍需硬件和真实服务验收。不要将参考板或交叉编译当作实机通过。

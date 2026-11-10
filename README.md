@@ -52,6 +52,8 @@ python3 tools/dev.py preview
 
 ## 文档
 
+- [按住说话的连接、松开与取消行为](docs/PTT.md)
+- [PTT 软件验证报告](docs/PTT_VALIDATION.md)
 - [Plus / ST7789 接线、烧录与实屏检查](docs/HARDWARE.md)
 - [目标板构建验证报告](docs/XIAO_BOARD_VALIDATION.md)
 - [角色常驻界面与真实事件联动](docs/ROLE_UI.md)

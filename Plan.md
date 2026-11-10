@@ -9,7 +9,7 @@
 首次目标是可接线、可配置、可烧录并能看到角色的固件；参考构建通过不等于目标硬件适配完成。
 
 已合并：PR #1 规范、#2 P0 基线、#3 Docker 开发镜像、#4 发布镜像 digest 锁定、#5 DeepSeek 娘素材来源与本地收集。
-小智基础工程 PR #6 已合并；素材与预览 PR #7 已合并；PR #8 角色界面与真实事件联动已合并；本轮接入 XIAO Plus / ST7789 板级配置、独立测试图和角色构建，待本功能 PR review。实际结果见 docs/ROLE_UI_VALIDATION.md。
+小智基础工程 PR #6 已合并；素材与预览 PR #7 已合并；PR #8 角色界面与真实事件联动已合并；PR #9 已提交 XIAO Plus / ST7789 板级配置、独立测试图和角色构建，尚待 review；本轮基于 #9 修复连接期间松开 PTT 和合并按键事件。实际结果见 docs/ROLE_UI_VALIDATION.md。
 原自行实现的角色核心停留在本地 `feat/pet-state-animation`，未推送或提交 PR，不作为新路线的依赖。
 
 ## 1. 复用与自有代码的边界
@@ -79,7 +79,8 @@
 - [x] 编写 docs/HARDWARE.md，按官方 Plus 资料分配焊盘/GPIO、SPI 与独立 I²S；屏幕 BL、功放负载/供电仍待资料，未作实机确认。
 - [x] 通过 Kconfig/CMake 板级扩展接入 Plus，复用 LCD、简单 I²S 和 Button；以隔离补丁/叠加文件管理，未修改上游 tracked 源码。
 - [x] 按官方规格固定 16 MB Flash / Octal PSRAM；开放显式测试图或带素材角色 profile。产物仅代表目标板构建通过，实物待验收。
-- [ ] 按顺序验证：测试图 → 角色待机 → 固定音频 → 录音回放 → 按键互动。
+- [x] 软件层修复连接期间松开、START/STOP 合并、旧 STOP 覆盖新按下及协议重置后的排队任务；复用真实 Application 主循环验证，结果见 docs/PTT_VALIDATION.md。
+- [ ] 按顺序实机验证：测试图 → 角色待机 → 固定音频 → 录音回放 → 按键互动。
 - [ ] 检查麦克风声道、16/32-bit 采样转换、扬声器音量和显示并行工作。复用 SDK 成功合同，正常处理错误，不逐层读回确认。
 
 验收：同型号实物上角色和音频正常；无设备时只记录构建与资料核对结果。
@@ -147,7 +148,7 @@ python3 tools/dev.py --offline --jobs 4 xiaozhi build --profile xiao-esp32s3-plu
 - 编译与测试交给独立测试子代理，报告命令、数量、通过/失败/跳过/未运行原因；上游测试和自有工具测试分别说明。
 - 每份 PR 说明基线、依赖、commit 阅读顺序、实际验证、未验证硬件与服务；用户决定 merge。未经新授权不自动 merge 或发布镜像/环境。
 - 使用当前 checkout，除非用户要求不创建额外 worktree。上游修改以可审核文件/补丁管理，保持原作者与许可；不改写已审阅历史。
-- 后续 AI 先核对本轮板级 PR 状态与 docs/XIAO_BOARD_VALIDATION.md，等待测试图实屏验收、确认 BL 和扬声器资料，再推进音频/服务联调。连接中松开按键会被上游忽略，完整 PTT 验收前应修复此已知边界。不要重新实现废弃的 HTTP/WAV 服务或 C11 角色核心。
+- 后续 AI 先核对本轮板级 PR 状态与 docs/XIAO_BOARD_VALIDATION.md，等待测试图实屏验收、确认 BL 和扬声器资料，再推进音频/服务联调。PTT 软件边界已修复，见 docs/PTT.md；完整 PTT 仍需实机与真实服务验收。不要重新实现废弃的 HTTP/WAV 服务或 C11 角色核心。
 
 
 ## 6. 本轮板级交接
@@ -159,5 +160,18 @@ python3 tools/dev.py --offline --jobs 4 xiaozhi build --profile xiao-esp32s3-plu
 | 固件获取 | CI 仅分发测试图烧录文件；角色素材仍在本地，使用本次构建 flash_args 烧录 |
 | 独立验证 | 命令、数量、最终源码指纹、产物及失败/未运行项见 docs/XIAO_BOARD_VALIDATION.md |
 | 硬件待办 | 确认 BL 电路、实物版本、扬声器/功放资料；用户先验收测试图，暂未实机通过 |
-| 下一实现 | 音频独立验收、连接中松开按键边界修复，然后服务端选择与真实对话 |
+| 下一实现 | PTT 软件修复见下一节；随后离线自检、音频验收、服务端选择与真实对话 |
 | Review | 本功能按板级实现、行为验证与文档/CI 分组 commit；用户决定 merge，不自动合并 |
+
+
+## 7. 本轮 PTT 软件交接
+
+| 项目 | 交付 / 下一步 |
+| --- | --- |
+| 基线与依赖 | 基于 PR #9 的 feat/xiao-plus-st7789；#9 尚未合并，新 PR 以该分支为 base，仅展示本次差异 |
+| 实现 | manual-listening.patch 在角色补丁后应用；一个原子请求位协调按钮入口与同步连接，复用原 FSM、音频及协议 |
+| 实际问题 | 同批 START+STOP、连接阻塞时松开、状态变更前松开、旧 STOP 与重新按下、失败/重置后的排队任务 |
+| 验证入口 | xiaozhi test 编译真实 Application 主循环及处理方法；仅平台/音频/网络端口替身；红绿对照、命令和最终固件结果见 docs/PTT_VALIDATION.md |
+| 硬件限制 | 尚无实体按键、FreeRTOS 调度延迟、I²S 或真实 ASR/DeepSeek/TTS 联调结论 |
+| 下一个功能 | 离线角色轮播、固定声音播放、录音回放自检；服务端方案和完整打包按后续功能 PR 推进 |
+| Review | 按生产修复、真实路径测试、操作与交接文档组织 commit；不自动 merge，依赖 #9 先 review |
