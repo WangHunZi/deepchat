@@ -120,6 +120,9 @@ def test_pet(args):
     check_source()
     if not (SOURCE / "managed_components/lvgl__lvgl/CMakeLists.txt").is_file():
         raise ValueError("Build the reference once to cache the locked LVGL dependency before running role UI tests")
+    import xiaozhi_overlay
+
+    application_source = xiaozhi_overlay.prepare(SOURCE, LOCK["revision"])
     output = native.BUILD_ROOT / "pet-tests"
     environment = native.host_environment()
     native.run(
@@ -134,6 +137,7 @@ def test_pet(args):
             "-DCMAKE_BUILD_TYPE=Debug",
             "-DUPSTREAM_ROOT=" + str(SOURCE),
             "-DOVERLAY_ROOT=" + str(ROOT / "src/xiaozhi"),
+            "-DAPPLICATION_ROOT=" + str(application_source / "main"),
         ],
         env=environment,
     )

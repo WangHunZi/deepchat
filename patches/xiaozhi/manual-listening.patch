@@ -1,0 +1,216 @@
+--- a/main/application.h
++++ b/main/application.h
+@@ -6,6 +6,7 @@
+ #include <freertos/task.h>
+ #include <esp_timer.h>
+ 
++#include <atomic>
+ #include <string>
+ #include <mutex>
+ #include <deque>
+@@ -139,6 +140,9 @@
+     esp_timer_handle_t startup_wake_word_hint_timer_ = nullptr;
+     DeviceStateMachine state_machine_;
+     DCPetPresentation pet_;
++    // Button callbacks publish the latest manual request while OpenAudioChannel blocks.
++    // Error/disconnect/reset cancels it; only a fresh press may start another turn.
++    std::atomic<bool> manual_listening_requested_{false};
+     ListeningMode listening_mode_ = kListeningModeAutoStop;
+     AecMode aec_mode_ = kAecOff;
+     std::string last_error_message_;
+--- a/main/application.cc
++++ b/main/application.cc
+@@ -122,6 +122,7 @@
+ 
+         switch (event) {
+             case NetworkEvent::Scanning:
++                manual_listening_requested_.store(false);
+                 display->ShowNotification(Lang::Strings::SCANNING_WIFI, 30000);
+                 xEventGroupSetBits(event_group_, MAIN_EVENT_NETWORK_DISCONNECTED);
+                 break;
+@@ -146,6 +147,7 @@
+                 break;
+             }
+             case NetworkEvent::Disconnected:
++                manual_listening_requested_.store(false);
+                 xEventGroupSetBits(event_group_, MAIN_EVENT_NETWORK_DISCONNECTED);
+                 break;
+             case NetworkEvent::WifiConfigModeEnter:
+@@ -198,6 +200,7 @@
+         auto bits = xEventGroupWaitBits(event_group_, ALL_EVENTS, pdTRUE, pdFALSE, portMAX_DELAY);
+ 
+         if (bits & MAIN_EVENT_ERROR) {
++            manual_listening_requested_.store(false);
+             pet_.Cancel();
+             if (GetDeviceState() == kDeviceStateNotifying) {
+                 StopNotification();
+@@ -244,12 +247,14 @@
+             HandleToggleChatEvent();
+         }
+ 
+-        if (bits & MAIN_EVENT_START_LISTENING) {
+-            HandleStartListeningEvent();
+-        }
+-
+-        if (bits & MAIN_EVENT_STOP_LISTENING) {
+-            HandleStopListeningEvent();
++        if (bits & (MAIN_EVENT_START_LISTENING | MAIN_EVENT_STOP_LISTENING)) {
++            // Event bits coalesce: consume the latest request, not a stale STOP
++            // from the previous press or a START already followed by release.
++            if (manual_listening_requested_.load()) {
++                HandleStartListeningEvent();
++            } else {
++                HandleStopListeningEvent();
++            }
+         }
+ 
+         if (bits & MAIN_EVENT_SEND_AUDIO) {
+@@ -333,6 +338,7 @@
+ }
+ 
+ void Application::HandleNetworkDisconnectedEvent() {
++    manual_listening_requested_.store(false);
+     CancelPetPresentation();
+     // Close current conversation when network disconnected
+     auto state = GetDeviceState();
+@@ -578,6 +584,7 @@
+     protocol_->OnConnected([this]() { DismissAlert(); });
+ 
+     protocol_->OnNetworkError([this](const std::string& message) {
++        manual_listening_requested_.store(false);
+         last_error_message_ = message;
+         xEventGroupSetBits(event_group_, MAIN_EVENT_ERROR);
+     });
+@@ -599,6 +606,7 @@
+     });
+ 
+     protocol_->OnAudioChannelClosed([this, &board]() {
++        manual_listening_requested_.store(false);
+         board.SetPowerSaveLevel(PowerSaveLevel::LOW_POWER);
+         Schedule([this]() {
+             CancelPetPresentation();
+@@ -813,9 +821,15 @@
+ 
+ void Application::ToggleChatState() { xEventGroupSetBits(event_group_, MAIN_EVENT_TOGGLE_CHAT); }
+ 
+-void Application::StartListening() { xEventGroupSetBits(event_group_, MAIN_EVENT_START_LISTENING); }
+-
+-void Application::StopListening() { xEventGroupSetBits(event_group_, MAIN_EVENT_STOP_LISTENING); }
++void Application::StartListening() {
++    manual_listening_requested_.store(true);
++    xEventGroupSetBits(event_group_, MAIN_EVENT_START_LISTENING);
++}
++
++void Application::StopListening() {
++    manual_listening_requested_.store(false);
++    xEventGroupSetBits(event_group_, MAIN_EVENT_STOP_LISTENING);
++}
+ 
+ void Application::HandleToggleChatEvent() {
+     auto state = GetDeviceState();
+@@ -846,6 +860,7 @@
+     if (state == kDeviceStateIdle) {
+         ListeningMode mode = GetDefaultListeningMode();
+         if (!protocol_->IsAudioChannelOpened()) {
++            listening_mode_ = mode;
+             SetDeviceState(kDeviceStateConnecting);
+             // Schedule to let the state change be processed first (UI update)
+             Schedule([this, mode]() { ContinueOpenAudioChannel(mode); });
+@@ -865,6 +880,12 @@
+         return;
+     }
+ 
++    if (mode == kListeningModeManualStop && !manual_listening_requested_.load()) {
++        CancelPetPresentation();
++        SetDeviceState(kDeviceStateIdle);
++        return;
++    }
++
+     // Switch to performance mode before connecting to reduce latency
+     auto& board = Board::GetInstance();
+     board.SetPowerSaveLevel(PowerSaveLevel::PERFORMANCE);
+@@ -873,9 +894,18 @@
+         if (!protocol_->OpenAudioChannel()) {
+             // Return to idle so the device is not stuck in the connecting
+             // state (not every failure path reports a network error)
++            manual_listening_requested_.store(false);
+             SetDeviceState(kDeviceStateIdle);
+             return;
+         }
++    }
++
++    // The button task may have released while the synchronous open was blocked.
++    // Keep a successfully opened channel reusable, as for a normal manual stop.
++    if (mode == kListeningModeManualStop && !manual_listening_requested_.load()) {
++        CancelPetPresentation();
++        SetDeviceState(kDeviceStateIdle);
++        return;
+     }
+ 
+     SetListeningMode(mode);
+@@ -905,6 +935,7 @@
+ 
+     if (state == kDeviceStateIdle) {
+         if (!protocol_->IsAudioChannelOpened()) {
++            listening_mode_ = kListeningModeManualStop;
+             SetDeviceState(kDeviceStateConnecting);
+             // Schedule to let the state change be processed first (UI update)
+             Schedule([this]() { ContinueOpenAudioChannel(kListeningModeManualStop); });
+@@ -926,7 +957,11 @@
+         audio_service_.EnableAudioTesting(false);
+         SetDeviceState(kDeviceStateWifiConfiguring);
+         return;
++    } else if (state == kDeviceStateConnecting && listening_mode_ == kListeningModeManualStop) {
++        CancelPetPresentation();
++        SetDeviceState(kDeviceStateIdle);
+     } else if (state == kDeviceStateListening) {
++        audio_service_.EnableVoiceProcessing(false);
+         if (protocol_) {
+             protocol_->SendStopListening();
+         }
+@@ -979,6 +1014,7 @@
+     // Always pass through the connecting state, even if the audio channel is
+     // already opened. ContinueWakeWordInvoke() rejects any other state, so
+     // skipping this transition would silently drop the wake word invocation.
++    listening_mode_ = GetDefaultListeningMode();
+     if (!SetDeviceState(kDeviceStateConnecting)) {
+         // Wake word detection was stopped by the detection itself; restore it
+         // so the device does not become unresponsive to wake words.
+@@ -1203,6 +1239,14 @@
+     // Runs in the main loop, either directly from HandleStateChangedEvent or
+     // deferred via MAIN_EVENT_PLAYBACK_DRAINED once the playback queue drains.
+     if (GetDeviceState() != kDeviceStateListening) {
++        return;
++    }
++
++    // Release can arrive after SetListeningMode but before STATE_CHANGED is consumed.
++    if (listening_mode_ == kListeningModeManualStop && !manual_listening_requested_.load()) {
++        audio_service_.EnableVoiceProcessing(false);
++        CancelPetPresentation();
++        SetDeviceState(kDeviceStateIdle);
+         return;
+     }
+ 
+@@ -1492,7 +1536,9 @@
+ void Application::PlaySound(const std::string_view& sound) { audio_service_.PlaySound(sound); }
+ 
+ void Application::ResetProtocol() {
++    manual_listening_requested_.store(false);
+     Schedule([this]() {
++        manual_listening_requested_.store(false);
+         CancelPetPresentation();
+         if (GetDeviceState() == kDeviceStateNotifying) {
+             StopNotification();
+@@ -1501,6 +1547,12 @@
+         if (protocol_ && protocol_->IsAudioChannelOpened()) {
+             protocol_->CloseAudioChannel();
+         }
++        // A queued open must not run after its protocol has been destroyed.
++        auto state = GetDeviceState();
++        if (state == kDeviceStateConnecting || state == kDeviceStateListening ||
++            state == kDeviceStateSpeaking) {
++            SetDeviceState(kDeviceStateIdle);
++        }
+         // Reset protocol
+         protocol_.reset();
+     });
