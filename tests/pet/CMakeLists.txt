@@ -38,3 +38,6 @@ add_executable(DCDisplayPatternTest DCDisplayPatternTest.cpp)
 target_include_directories(DCDisplayPatternTest PRIVATE "${OVERLAY_ROOT}/main/boards/deepchat-xiao-plus")
 target_compile_options(DCDisplayPatternTest PRIVATE -Wall -Wextra -Wpedantic -Werror)
 add_test(NAME board-display-pattern COMMAND DCDisplayPatternTest)
+
+# PTT 回归编译真实 Application 主循环和所选方法；只替换硬件/网络端口。
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../ptt" ptt)

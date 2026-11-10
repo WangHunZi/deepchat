@@ -36,7 +36,7 @@ python3 tools/dev.py --offline --jobs 4 xiaozhi build --profile reference-s3-lcd
 
 LLM 情绪边界只接收已有的 happy、confused、neutral；neutral 清除待显示反馈，其他名字记录不支持且保留当前状态，不偷偷换回系统表情。
 既有主任务错误事件的 cancel/cloud_off 在 Idle 下使用困惑动作；激活、升级等诊断 Alert 保留原状态和提示。没有从 Alert 工作线程写入显示映射实例。
-自动录音模式会直接继续 Listening，不为了情绪动画延迟下一轮。当前首版交互仍以手动按住说话为目标，实际按钮与服务端配合需后续验证。
+自动录音模式会直接继续 Listening，不为了情绪动画延迟下一轮。当前首版交互仍以手动按住说话为目标，连接期间松开与合并按键事件的软件修复见 [PTT 说明](PTT.md)；实际按钮与服务端配合仍需后续验证。
 
 ## 显示层行为
 
@@ -64,6 +64,7 @@ Cancel 返回 Idle 下的待机刷新动作，因为上游同状态转换成功�
 ## 如何管理上游修改
 
 - patches/xiaozhi/pet-ui.patch：Application、Display/LcdDisplay 的小范围补丁，保留上游风格，不复制整个固件。
+- patches/xiaozhi/manual-listening.patch：在角色补丁后修复手动按键与同步连接时序，保留上游状态机和协议。
 - src/xiaozhi/：自有 C++ 显示映射/布局头文件及 Plus 板级代码，编译时叠加到对应 main 目录；由现有格式入口覆盖。
 - tools/xiaozhi_overlay.py：从固定上游 git archive 创建生成副本，复制头文件并 git apply；补丁失败不发布半成品源码目录。
 - 生成位置：build/container/xiaozhi-pet/<输入指纹>/source，固件在同级 build。指纹包含上游 revision、所选 profile/模式及配置、补丁、叠加文件及业务依赖锁。

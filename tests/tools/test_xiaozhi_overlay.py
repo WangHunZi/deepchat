@@ -44,6 +44,9 @@ class XiaozhiOverlayTest(unittest.TestCase):
         self.patch = self.root / "patches/xiaozhi/pet-ui.patch"
         self.patch.parent.mkdir(parents=True)
         self.patch.write_text("--- a/hello.txt\n+++ b/hello.txt\n@@ -1 +1 @@\n-original\n+role\n")
+        self.patch.with_name("manual-listening.patch").write_text(
+            "--- a/.gitignore\n+++ b/.gitignore\n@@ -1 +1,2 @@\n managed_components/\n+ptt-fixture/\n"
+        )
         header = self.root / "src/xiaozhi/main/Role.h"
         header.parent.mkdir(parents=True)
         header.write_text("// fixture overlay\n")

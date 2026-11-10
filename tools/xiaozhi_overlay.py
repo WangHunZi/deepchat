@@ -13,7 +13,7 @@ import native
 def prepare(source, revision, *, pet=True, profile="reference-s3-lcd", display_test=False):
     """The caller validates the pinned upstream; generated sources never modify it."""
     root = native.REPO
-    patches = [root / "patches/xiaozhi/pet-ui.patch"] if pet else []
+    patches = [root / "patches/xiaozhi/pet-ui.patch", root / "patches/xiaozhi/manual-listening.patch"] if pet else []
     if profile == "xiao-esp32s3-plus-st7789":
         patches.append(root / "patches/xiaozhi/xiao-plus.patch")
     overlay = root / "src/xiaozhi"
